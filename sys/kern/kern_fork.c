@@ -859,9 +859,9 @@ fork1(struct thread *td, int flags, int pages, struct proc **procp,
 	    PRIV_MAXPROC, 0) != 0) || nprocs_new >= maxproc) {
 		sx_xlock(&allproc_lock);
 		if (ppsratecheck(&lastfail, &curfail, 1)) {
-			printf("maxproc limit exceeded by uid %u (pid %d); "
+			printf("maxproc limit exceeded by uid %u (pid %d td_name %s); "
 			    "see tuning(7) and login.conf(5)\n",
-			    td->td_ucred->cr_ruid, p1->p_pid);
+			    td->td_ucred->cr_ruid, p1->p_pid, td->td_name);
 		}
 		sx_xunlock(&allproc_lock);
 		error = EAGAIN;
