@@ -1349,8 +1349,12 @@ multi_user(void)
 	 * mode, and the run script has not set a higher level of security
 	 * than level 1, then put the kernel into secure mode.
 	 */
+
+	/*
+	 * XXX-OP keep securelevel 0 at boot
+	 */
 	if (getsecuritylevel() == 0)
-		setsecuritylevel(1);
+		setsecuritylevel(0);
 
 	for (sp = sessions; sp; sp = sp->se_next) {
 		if (sp->se_process)
