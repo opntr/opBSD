@@ -432,6 +432,10 @@ case ${firewall_type} in
 	#				 denied incoming packets are not
 	#				 logged.
 
+	# antispoof rules
+	${fwcmd} add deny ip from any to any not verrevpath in
+	${fwcmd} add deny ip from any to any not antispoof in
+
 	# Allow packets for which a state has been built.
 	${fwcmd} add check-state
 
@@ -455,9 +459,9 @@ case ${firewall_type} in
 	fi
 	# Some servers will ping the IP while trying to decide if it's
 	# still in use.
-	${fwcmd} add pass icmp from any to any icmptype 8
+	${fwcmd} add pass icmp from me to any icmptype 8
 	if [ $ipv6_available -eq 0 ]; then
-		${fwcmd} add pass ipv6-icmp from any to any icmp6type 128,129
+		${fwcmd} add pass ipv6-icmp from me to any icmp6type 128,129
 	fi
 
 	# Allow "mandatory" ICMP in.
