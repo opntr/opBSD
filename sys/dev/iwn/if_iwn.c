@@ -6056,7 +6056,6 @@ iwn_send_advanced_btcoex(struct iwn_softc *sc)
 		    sizeof(btconfig), 1);
 	}
 
-
 	if (error != 0)
 		return error;
 
