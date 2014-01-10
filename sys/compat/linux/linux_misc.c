@@ -1543,10 +1543,8 @@ linux_getppid(struct thread *td, struct linux_getppid_args *args)
 	PROC_UNLOCK(p);
 
 	/* if its also linux process */
-	if (pp->p_sysent == &elf_linux_sysvec) {
-		em = em_find(pp, EMUL_DONTLOCK);
-		KASSERT(em != NULL, ("getppid: parent emuldata not found.\n"));
-
+	if (pp->p_sysent == &elf_linux_sysvec &&
+	    (em = em_find(pp, EMUL_DONTLOCK)) != NULL) {
 		td->td_retval[0] = em->shared->group_pid;
 	} else
 		td->td_retval[0] = pp->p_pid;

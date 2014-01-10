@@ -285,6 +285,9 @@ linux_proc_exit(void *arg __unused, struct proc *p)
 			LIN_SDT_PROBE1(emul, proc_exit,
 			    child_clear_tid_error, error);
 
+			PROC_LOCK(p);
+			p->p_emuldata = NULL;
+			PROC_UNLOCK(p);
 			free(em, M_LINUX);
 
 			LIN_SDT_PROBE0(emul, proc_exit, return);
@@ -310,6 +313,9 @@ linux_proc_exit(void *arg __unused, struct proc *p)
 	}
 
 	/* clean the stuff up */
+	PROC_LOCK(p);
+	p->p_emuldata = NULL;
+	PROC_UNLOCK(p);
 	free(em, M_LINUX);
 
 	/* this is a little weird but rewritten from exit1() */
@@ -363,16 +369,16 @@ linux_proc_exec(void *arg __unused, struct proc *p, struct image_params *imgp)
  		 * time so some other process might reference it and try to
  		 * access its p->p_emuldata and panicing on a NULL reference.
 		 */
+
+		PROC_LOCK(p);
 		em = em_find(p, EMUL_DONTLOCK);
+		p->p_emuldata = NULL;
+		PROC_UNLOCK(p);
 
 		KASSERT(em != NULL, ("proc_exec: emuldata not found.\n"));
 
 		EMUL_SHARED_WLOCK(&emul_shared_lock);
 		LIST_REMOVE(em, threads);
-
-		PROC_LOCK(p);
-		p->p_emuldata = NULL;
-		PROC_UNLOCK(p);
 
 		em->shared->refs--;
 		if (em->shared->refs == 0) {
