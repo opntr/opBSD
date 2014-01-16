@@ -1241,7 +1241,7 @@ atse_rx_locked(struct atse_softc *sc)
 	do {
 outer:
 		if (sc->atse_rx_m == NULL) {
-			m = m_getcl(M_DONTWAIT, MT_DATA, M_PKTHDR);
+			m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 			if (m == NULL)
 				return (rx_npkts);
 			m->m_len = m->m_pkthdr.len = MCLBYTES;
