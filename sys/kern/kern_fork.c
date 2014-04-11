@@ -41,6 +41,7 @@ __FBSDID("$FreeBSD$");
 #include "opt_ktrace.h"
 #include "opt_kstack_pages.h"
 #include "opt_procdesc.h"
+#include "opt_pax.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -88,6 +89,10 @@ __FBSDID("$FreeBSD$");
 dtrace_fork_func_t	dtrace_fasttrap_fork;
 #endif
 
+#if defined(PAX_ASLR) || defined(PAX_SEGVGUARD)
+#include <sys/pax.h>
+#endif
+
 SDT_PROVIDER_DECLARE(proc);
 SDT_PROBE_DEFINE3(proc, kernel, , create, "struct proc *",
     "struct proc *", "int");
@@ -104,6 +109,12 @@ sys_fork(struct thread *td, struct fork_args *uap)
 {
 	int error;
 	struct proc *p2;
+
+#ifdef PAX_SEGVGUARD
+    error =pax_segvguard(curthread, curthread->td_proc->p_textvp, td->td_proc->p_comm, 0);
+    if (error)
+        return (error);
+#endif
 
 	error = fork1(td, RFFDG | RFPROC, 0, &p2, NULL, 0);
 	if (error == 0) {
@@ -744,6 +755,8 @@ do_fork(struct thread *td, int flags, struct proc *p2, struct thread *td2,
 	if (p2_held)
 		_PRELE(p2);
 	PROC_UNLOCK(p2);
+
+    p2->p_pax = p1->p_pax;
 }
 
 int
