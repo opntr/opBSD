@@ -909,7 +909,7 @@ pax_segvguard_active(struct thread *td, struct proc *proc)
 		if ((flags & ELF_NOTE_PAX_GUARD) == 0)
 			return (false);
 		break;
-	case    PAX_ASLR_GLOBAL_ENABLED:
+	case    PAX_SEGVGUARD_GLOBAL_ENABLED:
 		if ((flags & ELF_NOTE_PAX_NOGUARD) != 0)
 			return (false);
 		break;
