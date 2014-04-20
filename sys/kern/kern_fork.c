@@ -774,11 +774,12 @@ fork1(struct thread *td, int flags, int pages, struct proc **procp,
 #endif
 
 #ifdef PAX_SEGVGUARD
-    if (td->td_proc->p_pid != 0) {
-        error = pax_segvguard(curthread, curthread->td_proc->p_textvp, td->td_proc->p_comm, 0);
-        if (error)
-            return (error);
-    }
+	if (td->td_proc->p_pid != 0) {
+		error = pax_segvguard(curthread, curthread->td_proc->p_textvp,
+			   td->td_proc->p_comm, 0);
+		if (error)
+			return (error);
+	}
 #endif
 
 	/* Check for the undefined or unimplemented flags. */

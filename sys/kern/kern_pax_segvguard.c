@@ -417,7 +417,7 @@ pax_segvguard(struct thread *td, struct vnode *v, char *name, bool crashed)
 	struct vnode *vp;
 	bool vnode_found, uid_found;
 	struct prison *pr;
-    struct proc *p;
+	struct proc *p;
 
 	pr = pax_get_prison(td, NULL);
 
