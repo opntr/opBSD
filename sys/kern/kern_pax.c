@@ -68,14 +68,12 @@ extern int pax_aslr_mmap_len;
 extern int pax_aslr_stack_len;
 extern int pax_aslr_exec_len;
 extern int pax_aslr_status;
-
 #ifdef COMPAT_FREEBSD32
 extern int pax_aslr_compat_mmap_len;
 extern int pax_aslr_compat_stack_len;
 extern int pax_aslr_compat_exec_len;
-
 #endif
-#endif					/* PAX_ASLR */
+#endif /* PAX_ASLR */
 
 #ifdef PAX_SEGVGUARD
 extern int pax_segvguard_status;
@@ -83,8 +81,7 @@ extern int pax_segvguard_debug;
 extern int pax_segvguard_expiry;
 extern int pax_segvguard_suspension;
 extern int pax_segvguard_maxcrashes;
-
-#endif					/* PAX_SEGVGUARD */
+#endif /* PAX_SEGVGUARD */
 
 SYSCTL_NODE(_security, OID_AUTO, pax, CTLFLAG_RD, 0,
     "PaX (exploit mitigation) features.");
@@ -112,34 +109,34 @@ pax_elf(struct image_params *imgp)
 	const Elf_Shdr *shdr;
 	const Elf_Ehdr *hdr;
 	struct prison *pr;
-    u_int defaultflags=0;
+	u_int defaultflags = 0;
 
-    if (imgp == NULL || imgp->proc == NULL)
-        return;
+	if (imgp == NULL || imgp->proc == NULL)
+		return;
 
 	pr = pax_get_prison(NULL, imgp->proc);
 	if (pr != NULL) {
 #if defined(PAX_ASLR)
-        if (pr->pr_pax_aslr_status)
-            defaultflags |= ELF_NOTE_PAX_ASLR;
+		if (pr->pr_pax_aslr_status)
+			defaultflags |= ELF_NOTE_PAX_ASLR;
 #endif
 #if defined(PAX_SEGVGUARD)
-        if (pr->pr_pax_segvguard_status)
-            defaultflags |= ELF_NOTE_PAX_GUARD;
+		if (pr->pr_pax_segvguard_status)
+			defaultflags |= ELF_NOTE_PAX_GUARD;
 #endif
 	} else {
 #if defined(PAX_ASLR)
-        if (pax_aslr_status)
-            defaultflags |= ELF_NOTE_PAX_ASLR;
+		if (pax_aslr_status)
+			defaultflags |= ELF_NOTE_PAX_ASLR;
 #endif
 #if defined(PAX_SEGVGUARD)
-        if (pax_segvguard_status)
-            defaultflags |= ELF_NOTE_PAX_GUARD;
+		if (pax_segvguard_status)
+			defaultflags |= ELF_NOTE_PAX_GUARD;
 #endif
 	}
 
-	hdr = (Elf_Ehdr *) (imgp->image_header);
-	shdr = (Elf_Shdr *) (imgp->image_header + hdr->e_shoff);
+	hdr = (Elf_Ehdr *)(imgp->image_header);
+	shdr = (Elf_Shdr *)(imgp->image_header + hdr->e_shoff);
 	for (idx = 0; idx < hdr->e_shnum; idx++) {
 		if (shdr[idx].sh_type == SHT_NOTE && shdr[idx].sh_size == sizeof(struct note_pax)) {
 			notes = (struct note_pax *)(imgp->image_header + shdr[idx].sh_offset);
@@ -154,7 +151,7 @@ pax_elf(struct image_params *imgp)
 	}
 
 	if (!set) {
-        imgp->pax_flags = defaultflags;
+		imgp->pax_flags = defaultflags;
 		PROC_LOCK(imgp->proc);
 		imgp->proc->p_pax = defaultflags;
 		PROC_UNLOCK(imgp->proc);
