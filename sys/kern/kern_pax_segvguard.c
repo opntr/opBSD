@@ -507,9 +507,8 @@ pax_segvguard(struct thread *td, struct vnode *v, char *name, bool crashed)
 		if (!vnode_found) {
 			vn = pax_segvguard_add_file(vp, &sb);
 			pax_segvguard_add_uid(td, vn, &tv);
-		} else if (!uid_found) {
-			if (vn_saved)
-				pax_segvguard_add_uid(td, vn_saved, &tv);
+		} else if (!uid_found && (vn_saved != NULL)) {
+			pax_segvguard_add_uid(td, vn_saved, &tv);
 		}
 	}
 
