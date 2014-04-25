@@ -95,11 +95,6 @@ void
 pax_elf(struct image_params *imgp, uint32_t mode)
 {
 	u_int flags = 0;
-	/*
-	 * At the point this function is called, the section headers aren't loaded.
-	 *
-	 * Keep this function around for now, for planned use later on.
-	 */
 
 	if ((mode & MBI_ALLPAX) == MBI_ALLPAX)
 		goto end;
@@ -109,7 +104,7 @@ pax_elf(struct image_params *imgp, uint32_t mode)
 	else if (mode & MBI_FORCE_ASLR_DISABLED)
 		flags |= ELF_NOTE_PAX_NOASLR;
 
-	end:
+end:
 	if (imgp != NULL) {
 		imgp->pax_flags = flags;
 		if (imgp->proc != NULL) {
