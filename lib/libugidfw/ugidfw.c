@@ -993,12 +993,12 @@ bsde_parse_mode(int argc, char *argv[], mode_t *mode, uint32_t *pax, size_t bufl
 		case 'x':
 			*mode |= MBI_EXEC;
 			break;
-        case 'L':
-            *pax |= MBI_FORCE_ASLR_ENABLED;
-            break;
-        case 'l':
-            *pax |= MBI_FORCE_ASLR_DISABLED;
-            break;
+		case 'L':
+			*pax |= MBI_FORCE_ASLR_ENABLED;
+			break;
+		case 'l':
+			*pax |= MBI_FORCE_ASLR_DISABLED;
+			break;
 		case 'n':
 			/* ignore */
 			break;

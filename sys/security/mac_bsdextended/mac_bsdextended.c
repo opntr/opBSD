@@ -135,8 +135,8 @@ ugidfw_rule_valid(struct mac_bsdextended_rule *rule)
 	    (rule->mbr_object.mbo_type | MBO_ALL_TYPE) != MBO_ALL_TYPE)
 		return (EINVAL);
 #ifdef PAX_ASLR
-    if ((rule->mbr_pax | MBI_ALLPAX) != MBI_ALLPAX)
-        return (EINVAL);
+	if ((rule->mbr_pax | MBI_ALLPAX) != MBI_ALLPAX)
+		return (EINVAL);
 #endif
 	if ((rule->mbr_mode | MBI_ALLPERM) != MBI_ALLPERM)
 		return (EINVAL);
@@ -424,8 +424,8 @@ ugidfw_rulecheck(struct mac_bsdextended_rule *rule,
 	}
 
 #ifdef PAX_ASLR
-    if (imgp != NULL)
-        pax_elf(imgp, rule->mbr_pax);
+	if (imgp != NULL)
+		pax_elf(imgp, rule->mbr_pax);
 #endif
 
 	/*
