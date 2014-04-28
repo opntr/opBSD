@@ -112,7 +112,7 @@ struct mac_bsdextended_rule {
 	struct mac_bsdextended_subject	mbr_subject;
 	struct mac_bsdextended_object	mbr_object;
 	mode_t				mbr_mode;	/* maximum access */
-    uint32_t                        mbr_pax;
+	uint32_t			mbr_pax;
 };
 
 #endif /* _SYS_SECURITY_MAC_BSDEXTENDED_H */
