@@ -517,7 +517,8 @@ interpret:
 	}
 
 #ifdef PAX_SEGVGUARD
-	error = pax_segvguard(curthread, imgp->vp, args->fname, 0);
+    if (!error)
+        error = pax_segvguard(curthread, imgp->vp, args->fname, 0);
 #endif
 
 	if (error) {
