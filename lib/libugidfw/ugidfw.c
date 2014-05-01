@@ -36,6 +36,8 @@
 #include <sys/sysctl.h>
 #include <sys/ucred.h>
 #include <sys/mount.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <security/mac_bsdextended/mac_bsdextended.h>
 
@@ -44,6 +46,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "ugidfw.h"
 
@@ -500,49 +504,49 @@ bsde_rule_to_string(struct mac_bsdextended_rule *rule, char *buf, size_t buflen)
 		cur += len;
 	}
 
-    if (rule->mbr_pax) {
-        len = snprintf(cur, left, " paxflags ");
-        if (len < 0 || len > left)
-            goto truncated;
-        left -= len;
-        cur += len;
+	if (rule->mbr_pax) {
+		len = snprintf(cur, left, " paxflags ");
+		if (len < 0 || len > left)
+			goto truncated;
+		left -= len;
+		cur += len;
 
-        if (rule->mbr_pax & MBI_FORCE_ASLR_ENABLED) {
-            len = snprintf(cur, left, "A");
-            if (len < 0 || len > left)
-                goto truncated;
+		if (rule->mbr_pax & MBI_FORCE_ASLR_ENABLED) {
+			len = snprintf(cur, left, "A");
+			if (len < 0 || len > left)
+				goto truncated;
 
-            left -= len;
-            cur += len;
-        }
+			left -= len;
+			cur += len;
+		}
 
-        if (rule->mbr_pax & MBI_FORCE_ASLR_DISABLED) {
-            len = snprintf(cur, left, "a");
-            if (len < 0 || len > left)
-                goto truncated;
+		if (rule->mbr_pax & MBI_FORCE_ASLR_DISABLED) {
+			len = snprintf(cur, left, "a");
+			if (len < 0 || len > left)
+				goto truncated;
 
-            left -= len;
-            cur += len;
-        }
+			left -= len;
+			cur += len;
+		}
 
-        if (rule->mbr_pax & MBI_FORCE_SEGVGUARD_ENABLED) {
-            len = snprintf(cur, left, "S");
-            if (len < 0 || len > left)
-                goto truncated;
+		if (rule->mbr_pax & MBI_FORCE_SEGVGUARD_ENABLED) {
+			len = snprintf(cur, left, "S");
+			if (len < 0 || len > left)
+				goto truncated;
 
-            left -= len;
-            cur += len;
-        }
+			left -= len;
+			cur += len;
+		}
 
-        if (rule->mbr_pax & MBI_FORCE_SEGVGUARD_DISABLED) {
-            len = snprintf(cur, left, "s");
-            if (len < 0 || len > left)
-                goto truncated;
+		if (rule->mbr_pax & MBI_FORCE_SEGVGUARD_DISABLED) {
+			len = snprintf(cur, left, "s");
+			if (len < 0 || len > left)
+				goto truncated;
 
-            left -= len;
-            cur += len;
-        }
-    }
+			left -= len;
+			cur += len;
+		}
+	}
 
 	return (0);
 
@@ -810,18 +814,33 @@ bsde_parse_type(char *spec, int *type, size_t buflen, char *errstr)
 }
 
 int
-bsde_parse_fsid(char *spec, struct fsid *fsid, size_t buflen, char *errstr)
+bsde_parse_fsid(char *spec, struct fsid *fsid, ino_t *inode, size_t buflen, char *errstr)
 {
 	size_t len;
 	struct statfs buf;
+	struct stat sb;
+	int fd;
+
+	*inode = 0;
 
 	if (statfs(spec, &buf) < 0) {
 		len = snprintf(errstr, buflen, "Unable to get id for %s: %s",
-		    spec, strerror(errno));
+				spec, strerror(errno));
 		return (-1);
 	}
 
 	*fsid = buf.f_fsid;
+
+	if (strcmp(buf.f_fstypename, "devfs") != 0) {
+		fd = open(spec, O_RDONLY);
+		if (fd != -1) {
+			if (fstat(fd, &sb) == 0)
+				if(S_ISDIR(sb.st_mode) == 0)
+					*inode = sb.st_ino;
+
+			close(fd);
+		}
+	}
 
 	return (0);
 }
@@ -896,7 +915,7 @@ bsde_parse_object(int argc, char *argv[],
 				return (-1);
 			}
 			if (bsde_parse_fsid(argv[current+1], &fsid,
-			    buflen, errstr) < 0)
+			    &object->mbo_inode, buflen, errstr) < 0)
 				return (-1);
 			flags |= MBO_FSID_DEFINED;
 			if (nextnot) {
