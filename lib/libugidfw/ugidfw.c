@@ -560,8 +560,8 @@ truncated:
 }
 
 int
-bsde_parse_uidrange(char *spec, uid_t *min, uid_t *max,
-    size_t buflen, char *errstr){
+bsde_parse_uidrange(char *spec, uid_t *min, uid_t *max, size_t buflen, char *errstr)
+{
 	struct passwd *pwd;
 	uid_t uid1, uid2;
 	char *spec1, *spec2, *endp;
@@ -609,8 +609,8 @@ bsde_parse_uidrange(char *spec, uid_t *min, uid_t *max,
 }
 
 int
-bsde_parse_gidrange(char *spec, gid_t *min, gid_t *max,
-    size_t buflen, char *errstr){
+bsde_parse_gidrange(char *spec, gid_t *min, gid_t *max, size_t buflen, char *errstr)
+{
 	struct group *grp;
 	gid_t gid1, gid2;
 	char *spec1, *spec2, *endp;
@@ -1085,23 +1085,23 @@ bsde_parse_paxflags(int argc, char *argv[], uint32_t *pax, size_t buflen, char *
 	*pax = 0;
 	for (i = 0; i < strlen(argv[0]); i++) {
 		switch (argv[0][i]) {
-			case 'A':
-				*pax |= MBI_FORCE_ASLR_ENABLED;
-				break;
-			case 'a':
-				*pax |= MBI_FORCE_ASLR_DISABLED;
-				break;
-			case 'S':
-				*pax |= MBI_FORCE_SEGVGUARD_ENABLED;
-				break;
-			case 's':
-				*pax |= MBI_FORCE_SEGVGUARD_DISABLED;
-				break;
-			default:
-				len = snprintf(errstr, buflen, "Unknown mode letter: %c",
-						argv[0][i]);
-				return (-1);
-		} 
+		case 'A':
+			*pax |= MBI_FORCE_ASLR_ENABLED;
+			break;
+		case 'a':
+			*pax |= MBI_FORCE_ASLR_DISABLED;
+			break;
+		case 'S':
+			*pax |= MBI_FORCE_SEGVGUARD_ENABLED;
+			break;
+		case 's':
+			*pax |= MBI_FORCE_SEGVGUARD_DISABLED;
+			break;
+		default:
+			len = snprintf(errstr, buflen, "Unknown mode letter: %c",
+					argv[0][i]);
+			return (-1);
+		}
 	}
 
 	return (0);
