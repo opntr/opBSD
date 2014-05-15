@@ -55,11 +55,6 @@ __FBSDID("$FreeBSD$");
 
 #include <vm/vm.h>
 #include <vm/vm_param.h>
-#ifdef SPARSE_MAPPING
-#include <vm/vm_object.h>
-#include <vm/vm_kern.h>
-#include <vm/vm_extern.h>
-#endif
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
 
@@ -77,9 +72,6 @@ typedef struct elf_file {
 	struct linker_file lf;		/* Common fields */
 	int		preloaded;	/* Was file pre-loaded */
 	caddr_t		address;	/* Relocation address */
-#ifdef SPARSE_MAPPING
-	vm_object_t	object;		/* VM object to hold file pages */
-#endif
 	Elf_Dyn		*dynamic;	/* Symbol table etc. */
 	Elf_Hashelt	nbuckets;	/* DT_HASH info */
 	Elf_Hashelt	nchains;
@@ -394,9 +386,6 @@ link_elf_init(void* arg)
 	ef = (elf_file_t) linker_kernel_file;
 	ef->preloaded = 1;
 	ef->address = 0;
-#ifdef SPARSE_MAPPING
-	ef->object = 0;
-#endif
 	ef->dynamic = dp;
 
 	if (dp != NULL)
@@ -671,9 +660,6 @@ link_elf_link_preload(linker_class_t cls,
 	ef->preloaded = 1;
 	ef->modptr = modptr;
 	ef->address = *(caddr_t *)baseptr;
-#ifdef SPARSE_MAPPING
-	ef->object = 0;
-#endif
 	dp = (vm_offset_t)ef->address + *(vm_offset_t *)dynptr;
 	ef->dynamic = (Elf_Dyn *)dp;
 	lf->address = ef->address;
@@ -883,24 +869,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 	}
 
 	ef = (elf_file_t) lf;
-#ifdef SPARSE_MAPPING
-	ef->object = vm_object_allocate(OBJT_DEFAULT, mapsize >> PAGE_SHIFT);
-	if (ef->object == NULL) {
-		error = ENOMEM;
-		goto out;
-	}
-	ef->address = (caddr_t) vm_map_min(kernel_map);
-	error = vm_map_find(kernel_map, ef->object, 0,
-	    (vm_offset_t *) &ef->address, mapsize, 0, VMFS_OPTIMAL_SPACE,
-	    VM_PROT_ALL, VM_PROT_ALL, 0);
-	if (error != 0) {
-		vm_object_deallocate(ef->object);
-		ef->object = 0;
-		goto out;
-	}
-#else
 	ef->address = malloc(mapsize, M_LINKER, M_WAITOK);
-#endif
 	mapbase = ef->address;
 
 	/*
@@ -917,19 +886,6 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		bzero(segbase + segs[i]->p_filesz,
 		    segs[i]->p_memsz - segs[i]->p_filesz);
 
-#ifdef SPARSE_MAPPING
-		/*
-		 * Wire down the pages
-		 */
-		error = vm_map_wire(kernel_map,
-		    (vm_offset_t) segbase,
-		    (vm_offset_t) segbase + segs[i]->p_memsz,
-		    VM_MAP_WIRE_SYSTEM|VM_MAP_WIRE_NOHOLES);
-		if (error != KERN_SUCCESS) {
-			error = ENOMEM;
-			goto out;
-		}
-#endif
 	}
 
 #ifdef GPROF
@@ -1085,16 +1041,8 @@ link_elf_unload_file(linker_file_t file)
 		return;
 	}
 
-#ifdef SPARSE_MAPPING
-	if (ef->object != NULL) {
-		vm_map_remove(kernel_map, (vm_offset_t) ef->address,
-		    (vm_offset_t) ef->address
-		    + (ef->object->size << PAGE_SHIFT));
-	}
-#else
 	if (ef->address != NULL)
 		free(ef->address, M_LINKER);
-#endif
 	if (ef->symbase != NULL)
 		free(ef->symbase, M_LINKER);
 	if (ef->strbase != NULL)
