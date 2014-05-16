@@ -199,6 +199,8 @@ struct prison {
 	int		 pr_pax_segvguard_expiry;	/* () XXX */
 	int		 pr_pax_segvguard_suspension;	/* () XXX */
 	int		 pr_pax_segvguard_maxcrashes;	/* () XXX */
+	int		 pr_pax_log_log;
+	int		 pr_pax_log_ulog;
 };
 
 struct prison_racct {
