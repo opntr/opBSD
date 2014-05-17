@@ -158,5 +158,8 @@ pax_init_prison(struct prison *pr)
 	pr->pr_pax_segvguard_maxcrashes = pax_segvguard_maxcrashes;
 #endif
 
+	pr->pr_pax_log_log = pax_log_log;
+	pr->pr_pax_log_ulog = pax_log_ulog;
+
 	pr->pr_pax_set = 1;
 }
