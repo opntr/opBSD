@@ -4,6 +4,8 @@ NO_MAN=
 
 .include <bsd.own.mk>
 
+NO_PIE=yes
+
 .PATH: ${.CURDIR}/../../../contrib/ntp/ntpd
 
 PROG=	ntpd

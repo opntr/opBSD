@@ -30,4 +30,6 @@ CLEANFILES+=	nmtree.8
 nmtree.8: mtree.8
 	cp ${.ALLSRC} ${.TARGET}
 
+NO_PIE=yes
+
 .include <bsd.prog.mk>
