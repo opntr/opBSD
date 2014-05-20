@@ -19,4 +19,6 @@ CFLAGS+= -DHAVE_CONFIG_H -DVERSION="\"1.12.1\""
 DPADD=	${LIBMANDOC}
 LDADD=	${LIBMANDOC}
 
+NO_PIE=yes
+
 .include <bsd.prog.mk>
