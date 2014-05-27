@@ -69,7 +69,7 @@ __FBSDID("$FreeBSD$");
 #define BCRYPT_VERSION '2'
 #define BCRYPT_MAXSALT 16	/* Precomputation is just so nice */
 #define BCRYPT_BLOCKS 6		/* Ciphertext blocks */
-#define BCRYPT_MINLOGROUNDS 4	/* we have log2(rounds) in salt */
+#define BCRYPT_MINLOGROUNDS 14	/* we have log2(rounds) in salt */
 
 
 static void encode_base64(u_int8_t *, u_int8_t *, u_int16_t);
@@ -133,7 +133,7 @@ decode_base64(u_int8_t *buffer, u_int16_t len, const u_int8_t *data)
 }
 
 /* We handle $Vers$log2(NumRounds)$salt+passwd$
-   i.e. $2$04$iwouldntknowwhattosayetKdJ6iFtacBqJdKe6aW7ou */
+   i.e. $2$14$iwouldntknowwhattosayetKdJ6iFtacBqJdKe6aW7ou */
 
 char   *
 crypt_blowfish(const char *key, const char *salt)
