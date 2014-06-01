@@ -1101,6 +1101,9 @@ exec_new_vmspace(imgp, sv)
 	else
 		ssiz = maxssiz;
 	stack_addr = sv->sv_usrstack - ssiz;
+#ifdef PAX_ASLR
+	pax_aslr_stack(curthread, &stack_addr);
+#endif
 	error = vm_map_stack(map, stack_addr, (vm_size_t)ssiz,
 	    obj != NULL && imgp->stack_prot != 0 ? imgp->stack_prot :
 		sv->sv_stackprot,
@@ -1286,7 +1289,7 @@ exec_copyout_strings(imgp)
 	}
 	destp =	(uintptr_t)arginfo;
 #ifdef PAX_ASLR
-	pax_aslr_stack(curthread, &destp);
+	pax_aslr_stack_gap(curthread, &destp);
 #endif
 
 	/*

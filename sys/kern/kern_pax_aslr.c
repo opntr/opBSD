@@ -654,6 +654,26 @@ pax_aslr_mmap(struct thread *td, vm_offset_t *addr, vm_offset_t orig_addr, int f
 }
 
 void
+pax_aslr_stack_gap(struct thread *td, uintptr_t *addr)
+{
+	struct prison *pr;
+	uintptr_t orig_addr;
+
+	if (!pax_aslr_active(td, NULL)) {
+		return;
+	}
+
+	pr = pax_get_prison(td, NULL);
+
+	orig_addr = *addr;
+	*addr -= (td->td_proc->p_vmspace->vm_aslr_delta_stack) & (0xff << PAX_ASLR_DELTA_EXEC_LSB);
+	pax_log_aslr(pr, __func__, "orig_addr=%p, new_addr=%p\n",
+	    (void *)orig_addr, (void *)*addr);
+	pax_ulog_aslr(pr, NULL, "orig_addr=%p, new_addr=%p\n",
+	    (void *)orig_addr, (void *)*addr);
+}
+
+void
 pax_aslr_stack(struct thread *td, uintptr_t *addr)
 {
 	struct prison *pr;
@@ -666,7 +686,7 @@ pax_aslr_stack(struct thread *td, uintptr_t *addr)
 	pr = pax_get_prison(td, NULL);
 
 	orig_addr = *addr;
-	*addr -= td->td_proc->p_vmspace->vm_aslr_delta_stack;
+	*addr -= (td->td_proc->p_vmspace->vm_aslr_delta_stack) & (~0xff << (PAX_ASLR_DELTA_EXEC_LSB+1));
 	pax_log_aslr(pr, __func__, "orig_addr=%p, new_addr=%p\n",
 	    (void *)orig_addr, (void *)*addr);
 	pax_ulog_aslr(pr, NULL, "orig_addr=%p, new_addr=%p\n",

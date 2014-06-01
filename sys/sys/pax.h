@@ -76,7 +76,7 @@ struct vm_offset_t;
  * 	+-------+--------+--------+
  * 	| DEF	|  6 bit | 16 bit |
  * 	+-------+--------+--------+
- * 	| MAX   | 10 bit | 21 bit |
+ * 	| MAX   | 16 bit | 32 bit |
  * 	+-------+--------+--------+
  *
  *  	EXEC	| 32 bit | 64 bit |
@@ -110,7 +110,7 @@ struct vm_offset_t;
 #endif /* PAX_ASLR_DELTA_STACK_MAX_LEN */
 
 #ifndef PAX_ASLR_DELTA_STACK_MAX_LEN
-#define PAX_ASLR_DELTA_STACK_MAX_LEN	((sizeof(void *) * NBBY) / 3)
+#define PAX_ASLR_DELTA_STACK_MAX_LEN	((sizeof(void *) * NBBY) / 2)
 #endif /* PAX_ASLR_DELTA_STACK_MAX_LEN */
 
 #ifndef PAX_ASLR_DELTA_EXEC_LSB
@@ -235,6 +235,7 @@ void _pax_aslr_init32(struct vmspace *vm, struct prison *pr);
 void pax_aslr_init(struct thread *td, struct image_params *imgp);
 void pax_aslr_mmap(struct thread *td, vm_offset_t *addr,
 			vm_offset_t orig_addr, int flags);
+void pax_aslr_stack_gap(struct thread *td, uintptr_t *addr);
 void pax_aslr_stack(struct thread *td, uintptr_t *addr);
 struct prison *pax_get_prison(struct thread *td, struct proc *proc);
 void pax_elf(struct image_params *, uint32_t);
