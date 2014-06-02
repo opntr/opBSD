@@ -168,13 +168,15 @@ initializecpu(void)
 		cr4 |= CR4_FSGSBASE;
 
 	/*
-	 * Postpone enabling the SMEP on the boot CPU until the page
-	 * tables are switched from the boot loader identity mapping
+	 * Postpone enabling the SMEP and SMAP on the boot CPU until the
+	 * page tables are switched from the boot loader identity mapping
 	 * to the kernel tables.  The boot loader enables the U bit in
 	 * its tables.
 	 */
 	if (!IS_BSP() && (cpu_stdext_feature & CPUID_STDEXT_SMEP))
 		cr4 |= CR4_SMEP;
+	if (!IS_BSP() && (cpu_stdext_feature & CPUID_STDEXT_SMAP))
+		cr4 |= CR4_SMAP;
 	load_cr4(cr4);
 	if ((amd_feature & AMDID_NX) != 0) {
 		msr = rdmsr(MSR_EFER) | EFER_NXE;
