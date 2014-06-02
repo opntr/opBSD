@@ -566,7 +566,7 @@ identify_cpu(void)
 		 */
 		if (cpu_feature2 & CPUID2_HV) {
 			cpu_stdext_disable = CPUID_STDEXT_FSGSBASE |
-			    CPUID_STDEXT_SMEP;
+			    CPUID_STDEXT_SMEP | CPUID_STDEXT_SMAP;
 		} else
 			cpu_stdext_disable = 0;
 		TUNABLE_INT_FETCH("hw.cpu_stdext_disable", &cpu_stdext_disable);
