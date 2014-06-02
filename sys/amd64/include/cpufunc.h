@@ -587,6 +587,23 @@ cpu_mwait(u_long extensions, u_int hints)
 	__asm __volatile("mwait" : : "a" (hints), "c" (extensions));
 }
 
+/*
+ * Intel SMAP related functions.
+ */
+static __inline void
+clac(void)
+{
+
+	__asm __volatile("clac" : : : "memory");
+}
+
+static __inline void
+stac(void)
+{
+
+	__asm __volatile("stac" : : : "memory");
+}
+
 #ifdef _KERNEL
 /* This is defined in <machine/specialreg.h> but is too painful to get to */
 #ifndef	MSR_FSBASE
