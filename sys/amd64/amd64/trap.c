@@ -104,6 +104,7 @@ void dblfault_handler(struct trapframe *frame);
 
 static int trap_pfault(struct trapframe *, int);
 static void trap_fatal(struct trapframe *, vm_offset_t);
+static bool smap_access_violation(struct trapframe *, int usermode);
 
 #define MAX_TRAP_MSG		32
 static char *trap_msg[] = {
@@ -698,6 +699,16 @@ trap_pfault(frame, usermode)
 		map = &vm->vm_map;
 
 		/*
+		 * If CPL < 3, SMAP protections are disabled if EFLAGS.AC = 1.
+		 * If CPL = 3, SMAP applies to all supervisor-mode data accesses
+		 *  (these are implicit supervisor accesses) regardless of the
+		 *  value of EFLAGS.AC." - Intel Ref. # 319433-014 9.3.2
+		 */
+		if (__predict_false(smap_access_violation(frame, usermode))) {
+			panic("SMAP!");
+		}
+
+		/*
 		 * When accessing a usermode address, kernel must be
 		 * ready to accept the page fault, and provide a
 		 * handling routine.  Since accessing the address
@@ -866,6 +877,32 @@ trap_fatal(frame, eva)
 		panic("%s", trap_msg[type]);
 	else
 		panic("unknown/reserved trap");
+}
+
+
+/*
+ * Supervisor Mode Access Prevention violation
+ *
+ * If CPL < 3, SMAP protections are disabled if EFLAGS.AC = 1.
+ * If CPL = 3, SMAP applies to all supervisor-mode data accesses
+ *  (these are implicit supervisor accesses) regardless of the
+ *  value of EFLAGS.AC." - Intel Ref. # 319433-014 9.3.2
+ */
+static bool
+smap_access_violation(struct trapframe *frame, int usermode)
+{
+	/* SMAP disabled */
+	if ((cpu_stdext_feature & CPUID_STDEXT_SMAP) == 0)
+		return (false);
+
+	/* CPL == 3 or EFLAGS.AC == 1 */
+	if (usermode || (frame->tf_rflags & PSL_AC) != 0)
+		return (false);
+
+	/*
+	 * CPL < 3 and EFLAGS.AC == 0
+	 */
+	return (true);
 }
 
 /*
