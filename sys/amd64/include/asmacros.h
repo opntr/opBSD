@@ -167,6 +167,7 @@
 	movw	%es,TF_ES(%rsp) ;					\
 	movw	%ds,TF_DS(%rsp) ;					\
 	movl	$TF_HASSEGS,TF_FLAGS(%rsp) ;				\
+	clac;								\
 	cld
 
 #define POP_FRAME							\
