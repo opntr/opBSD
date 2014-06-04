@@ -455,6 +455,7 @@ IDTVEC(fast_syscall32)
  */
 
 IDTVEC(nmi)
+	clac			/* XXXOP */
 	subq	$TF_RIP,%rsp
 	movl	$(T_NMI),TF_TRAPNO(%rsp)
 	movq	$0,TF_ADDR(%rsp)
@@ -479,7 +480,6 @@ IDTVEC(nmi)
 	movw	%es,TF_ES(%rsp)
 	movw	%ds,TF_DS(%rsp)
 	movl	$TF_HASSEGS,TF_FLAGS(%rsp)
-	clac
 	cld
 	xorl	%ebx,%ebx
 	testb	$SEL_RPL_MASK,TF_CS(%rsp)
