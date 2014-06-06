@@ -97,6 +97,7 @@ u_int	cpu_procinfo2 = 0;	/* Multicore info */
 char	cpu_vendor[20] = "";	/* CPU Origin code */
 u_int	cpu_vendor_id = 0;	/* CPU vendor ID */
 u_int	cpu_clflush_line_size = 32;
+u_int	cpu_stdext_feature;
 u_int	cpu_mon_mwait_flags;	/* MONITOR/MWAIT flags (CPUID.05H.ECX) */
 u_int	cpu_mon_min_size;	/* MONITOR minimum range size, bytes */
 u_int	cpu_mon_max_size;	/* MONITOR minimum range size, bytes */
