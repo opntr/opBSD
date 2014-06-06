@@ -1266,10 +1266,20 @@ db_disasm(loc, altfmt)
 		case 0xc8:
 			i_name = "monitor";
 			i_size = NONE;
-			i_mode = 0;			
+			i_mode = 0;
 			break;
 		case 0xc9:
 			i_name = "mwait";
+			i_size = NONE;
+			i_mode = 0;
+			break;
+		case 0xca:
+			i_name = "clac";
+			i_size = NONE;
+			i_mode = 0;
+			break;
+		case 0xcb:
+			i_name = "stac";
 			i_size = NONE;
 			i_mode = 0;
 			break;
