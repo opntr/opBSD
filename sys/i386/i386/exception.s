@@ -162,6 +162,7 @@ alltraps:
 	pushl	%fs
 alltraps_with_regs_pushed:
 	SET_KERNEL_SREGS
+	clac
 	cld
 	FAKE_MCOUNT(TF_EIP(%esp))
 calltrap:
