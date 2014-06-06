@@ -705,7 +705,9 @@ trap_pfault(frame, usermode)
 		 *  value of EFLAGS.AC." - Intel Ref. # 319433-014 9.3.2
 		 */
 		if (__predict_false(smap_access_violation(frame, usermode))) {
-			panic("SMAP!");
+			printf("Supervisor Mode Access Prevention\n");
+			fatal_trap(frame, eva);
+			return(-1);
 		}
 
 		/*
