@@ -62,8 +62,8 @@ ENTRY(bzero)
 	stosb
 	popl	%edi
 	ret
-END(bzero)	
-	
+END(bzero)
+
 ENTRY(sse2_pagezero)
 	pushl	%ebx
 	movl	8(%esp),%ecx
@@ -694,7 +694,7 @@ ENTRY(lgdt)
 	movl	4(%esp),%eax
 	lgdt	(%eax)
 #endif
-	
+
 	/* flush the prefetch q */
 	jmp	1f
 	nop
