@@ -706,7 +706,7 @@ trap_pfault(frame, usermode)
 		 */
 		if (__predict_false(smap_access_violation(frame, usermode))) {
 			printf("Supervisor Mode Access Prevention\n");
-			fatal_trap(frame, eva);
+			trap_fatal(frame, eva);
 			return(-1);
 		}
 
