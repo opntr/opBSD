@@ -168,6 +168,24 @@ mfence(void)
 	__asm __volatile("mfence" : : : "memory");
 }
 
+/*
+ * Intel SMAP related functions.
+ */
+static __inline void
+clac(void)
+{
+
+	__asm __volatile("clac" : : : "memory");
+}
+
+static __inline void
+stac(void)
+{
+
+	__asm __volatile("stac" : : : "memory");
+}
+
+
 #ifdef _KERNEL
 
 #define	HAVE_INLINE_FFS
