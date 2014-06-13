@@ -269,6 +269,10 @@ END(memcpy)
  * These routines set curpcb->pcb_onfault for the time they execute. When a
  * protection violation occurs inside the functions, the trap handler
  * returns to *curpcb->pcb_onfault instead of the function.
+ *
+ * Warning: when Intel SMAP are enabled on CPU, the EFLAGS.AC bit gets
+ * cleared before reaches the fault handler.
+ */
  */
 
 /*
@@ -313,12 +317,16 @@ ENTRY(copyout)
 
 	shrl	$2,%ecx
 	cld
+	stac					/* open user-space */
 	rep
 	movsl
+	clac					/* close user-space */
 	movb	%bl,%cl
 	andb	$3,%cl
+	stac					/* open user-space */
 	rep
 	movsb
+	clac					/* close user-space */
 
 done_copyout:
 	popl	%ebx
@@ -332,6 +340,9 @@ END(copyout)
 
 	ALIGN_TEXT
 copyout_fault:
+	/*
+	 * WARNING: on fault EFLAGS.AC gets cleared by Intel SMAP if available
+	 */
 	popl	%ebx
 	popl	%edi
 	popl	%esi
@@ -364,12 +375,16 @@ ENTRY(copyin)
 	movb	%cl,%al
 	shrl	$2,%ecx				/* copy longword-wise */
 	cld
+	stac					/* open user-space */
 	rep
 	movsl
+	clac					/* close user-space */
 	movb	%al,%cl
 	andb	$3,%cl				/* copy remaining bytes */
+	stac					/* open user-space */
 	rep
 	movsb
+	clac					/* close user-space */
 
 	popl	%edi
 	popl	%esi
@@ -381,6 +396,9 @@ END(copyin)
 
 	ALIGN_TEXT
 copyin_fault:
+	/*
+	 * WARNING: on fault EFLAGS.AC gets cleared by Intel SMAP if available
+	 */
 	popl	%edi
 	popl	%esi
 	movl	PCPU(CURPCB),%edx
@@ -406,7 +424,9 @@ ENTRY(casuword)
 #ifdef SMP
 	lock
 #endif
+	stac					/* open user-space */
 	cmpxchgl %ecx,(%edx)			/* Compare and set. */
+	clac					/* close user-space */
 
 	/*
 	 * The old value is in %eax.  If the store succeeded it will be the
@@ -434,7 +454,9 @@ ENTRY(fuword)
 	cmpl	$VM_MAXUSER_ADDRESS-4,%edx	/* verify address is valid */
 	ja	fusufault
 
+	stac					/* open user-space */
 	movl	(%edx),%eax
+	clac					/* close user-space */
 	movl	$0,PCB_ONFAULT(%ecx)
 	ret
 END(fuword32)
@@ -462,7 +484,9 @@ ENTRY(fuword16)
 	cmpl	$VM_MAXUSER_ADDRESS-2,%edx
 	ja	fusufault
 
+	stac					/* open user-space */
 	movzwl	(%edx),%eax
+	clac					/* close user-space */
 	movl	$0,PCB_ONFAULT(%ecx)
 	ret
 END(fuword16)
@@ -475,13 +499,18 @@ ENTRY(fubyte)
 	cmpl	$VM_MAXUSER_ADDRESS-1,%edx
 	ja	fusufault
 
+	stac					/* open user-space */
 	movzbl	(%edx),%eax
+	clac					/* close user-space */
 	movl	$0,PCB_ONFAULT(%ecx)
 	ret
 END(fubyte)
 
 	ALIGN_TEXT
 fusufault:
+	/*
+	 * WARNING: on fault EFLAGS.AC gets cleared by Intel SMAP if available
+	 */
 	movl	PCPU(CURPCB),%ecx
 	xorl	%eax,%eax
 	movl	%eax,PCB_ONFAULT(%ecx)
@@ -503,7 +532,9 @@ ENTRY(suword)
 	ja	fusufault
 
 	movl	8(%esp),%eax
+	stac					/* open user-space */
 	movl	%eax,(%edx)
+	clac					/* close user-space */
 	xorl	%eax,%eax
 	movl	PCPU(CURPCB),%ecx
 	movl	%eax,PCB_ONFAULT(%ecx)
@@ -520,7 +551,9 @@ ENTRY(suword16)
 	ja	fusufault
 
 	movw	8(%esp),%ax
+	stac					/* open user-space */
 	movw	%ax,(%edx)
+	clac					/* close user-space */
 	xorl	%eax,%eax
 	movl	PCPU(CURPCB),%ecx		/* restore trashed register */
 	movl	%eax,PCB_ONFAULT(%ecx)
@@ -536,7 +569,9 @@ ENTRY(subyte)
 	ja	fusufault
 
 	movb	8(%esp),%al
+	stac					/* open user-space */
 	movb	%al,(%edx)
+	clac					/* close user-space */
 	xorl	%eax,%eax
 	movl	PCPU(CURPCB),%ecx		/* restore trashed register */
 	movl	%eax,PCB_ONFAULT(%ecx)
@@ -580,7 +615,9 @@ ENTRY(copyinstr)
 	decl	%edx
 	jz	3f
 
+	stac					/* open user-space */
 	lodsb
+	clac					/* close user-space */
 	stosb
 	orb	%al,%al
 	jnz	2b
@@ -609,7 +646,9 @@ cpystrflt_x:
 	movl	24(%esp),%edx
 	testl	%edx,%edx
 	jz	1f
+	stac					/* open user-space */
 	movl	%ecx,(%edx)
+	clac					/* close user-space */
 1:
 	popl	%edi
 	popl	%esi
