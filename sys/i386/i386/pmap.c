@@ -384,6 +384,19 @@ pmap_bootstrap(vm_paddr_t firstaddr)
 
 	virtual_end = VM_MAX_KERNEL_ADDRESS;
 
+	if (cpu_stdext_feature & CPUID_STDEXT_SMEP)
+		load_cr4(rcr4() | CR4_SMEP);
+	/*
+	 * XXXOP - handle properly the situation, when the kernel
+	 * compiled with SMAP, but the CPU does not support it
+	 */
+	if (cpu_stdext_feature & CPUID_STDEXT_SMAP) {
+		printf("Intel SMAP: enable\n");
+		load_cr4(rcr4() | CR4_SMAP);
+	} else {
+		panic("Intel SMAP: not supported...");
+	}
+
 	/*
 	 * Initialize the kernel pmap (which is statically allocated).
 	 */
