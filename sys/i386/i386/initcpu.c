@@ -671,6 +671,7 @@ extern int elf32_nxstack;
 void
 initializecpu(void)
 {
+	uint32_t cr4;
 
 	switch (cpu) {
 #ifdef I486_CPU
@@ -792,6 +793,17 @@ initializecpu(void)
 	 */
 	if (hw_clflush_disable == 1)
 		cpu_feature &= ~CPUID_CLFSH;
+
+	cr4 = rcr4();
+	/*
+	 * Postpone enabling the SMAP on the boot CPU until the
+	 * page tables are switched from the boot loader identity mapping
+	 * to the kernel tables.  The boot loader enables the U bit in
+	 * its tables.
+	 */
+	if (!IS_BSP() && (cpu_stdext_feature & CPUID_STDEXT_SMAP))
+		cr4 |= CR4_SMAP;
+	load_cr4(cr4);
 
 #if defined(PC98) && !defined(CPU_UPGRADE_HW_CACHE)
 	/*
