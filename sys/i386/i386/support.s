@@ -421,10 +421,10 @@ ENTRY(casuword)
 	cmpl	$VM_MAXUSER_ADDRESS-4,%edx	/* verify address is valid */
 	ja	fusufault
 
+	stac					/* open user-space */
 #ifdef SMP
 	lock
 #endif
-	stac					/* open user-space */
 	cmpxchgl %ecx,(%edx)			/* Compare and set. */
 	clac					/* close user-space */
 
