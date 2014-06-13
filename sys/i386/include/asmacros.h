@@ -143,13 +143,15 @@
  * Macros to create and destroy a trap frame.
  */
 #define	PUSH_FRAME							\
+	clac ;								\
 	pushl	$0 ;		/* dummy error code */			\
 	pushl	$0 ;		/* dummy trap type */			\
 	pushal ;		/* 8 ints */				\
 	pushl	%ds ;		/* save data and extra segments ... */	\
 	pushl	%es ;							\
 	pushl	%fs
-	
+
+
 #define	POP_FRAME							\
 	popl	%fs ;							\
 	popl	%es ;							\
