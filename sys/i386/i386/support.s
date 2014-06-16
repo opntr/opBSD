@@ -273,7 +273,6 @@ END(memcpy)
  * Warning: when Intel SMAP are enabled on CPU, the EFLAGS.AC bit gets
  * cleared before reaches the fault handler.
  */
- */
 
 /*
  * copyout(from_kernel, to_user, len)  - MP SAFE
