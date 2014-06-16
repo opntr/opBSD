@@ -109,6 +109,7 @@ PMC_SOFT_DEFINE( , , page_fault, write);
 extern void trap(struct trapframe *frame);
 extern void syscall(struct trapframe *frame);
 
+static bool smap_access_violation(struct trapframe *frame, int usermode);
 static int trap_pfault(struct trapframe *, int, vm_offset_t);
 static void trap_fatal(struct trapframe *, vm_offset_t);
 void dblfault_handler(void);
