@@ -1051,7 +1051,7 @@ smap_access_violation(struct trapframe *frame, int usermode)
 		return (false);
 
 	/* CPL == 3 or EFLAGS.AC == 1 */
-	if (usermode || (frame->tf_rflags & PSL_AC) != 0)
+	if (usermode || (frame->tf_eflags & PSL_AC) != 0)
 		return (false);
 
 	/*
