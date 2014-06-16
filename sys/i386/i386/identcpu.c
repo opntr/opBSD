@@ -1140,7 +1140,7 @@ finishidentcpu(void)
 {
 	int	isblue = 0;
 	u_char	ccr3;
-	u_int	regs[4];
+	u_int	regs[4], cpu_stdext_disable;
 
 	cpu_vendor_id = find_cpu_vendor_id();
 
