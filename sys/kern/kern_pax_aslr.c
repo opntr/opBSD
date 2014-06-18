@@ -562,8 +562,7 @@ _pax_aslr_init(struct vmspace *vm, struct prison *pr)
 	vm->vm_aslr_delta_mmap = PAX_ASLR_DELTA(arc4random(),
 			PAX_ASLR_DELTA_MMAP_LSB, (pr != NULL) ? pr->pr_pax_aslr_mmap_len : pax_aslr_mmap_len);
 	vm->vm_aslr_delta_stack = PAX_ASLR_DELTA(arc4random(),
-			PAX_ASLR_DELTA_STACK_LSB, (pr != NULL) ? pr->pr_pax_aslr_stack_len : pax_aslr_stack_len);
-	vm->vm_aslr_delta_stack = ALIGN(vm->vm_aslr_delta_stack);
+			PAX_ASLR_DELTA_STACK_GAP_LSB, (pr != NULL) ? pr->pr_pax_aslr_stack_len : pax_aslr_stack_len);
 	vm->vm_aslr_delta_exec = PAX_ASLR_DELTA(arc4random(),
 			PAX_ASLR_DELTA_EXEC_LSB, (pr != NULL) ? pr->pr_pax_aslr_exec_len : pax_aslr_exec_len);
 
@@ -588,8 +587,7 @@ _pax_aslr_init32(struct vmspace *vm, struct prison *pr)
 	vm->vm_aslr_delta_mmap = PAX_ASLR_DELTA(arc4random(),
 			PAX_ASLR_COMPAT_DELTA_MMAP_LSB, (pr != NULL) ? pr->pr_pax_aslr_compat_mmap_len : pax_aslr_compat_mmap_len);
 	vm->vm_aslr_delta_stack = PAX_ASLR_DELTA(arc4random(),
-			PAX_ASLR_COMPAT_DELTA_STACK_LSB, (pr != NULL) ? pr->pr_pax_aslr_compat_stack_len : pax_aslr_compat_stack_len);
-	vm->vm_aslr_delta_stack = ALIGN(vm->vm_aslr_delta_stack);
+			PAX_ASLR_COMPAT_DELTA_STACK_GAP_LSB, (pr != NULL) ? pr->pr_pax_aslr_compat_stack_len : pax_aslr_compat_stack_len);
 	vm->vm_aslr_delta_exec = PAX_ASLR_DELTA(arc4random(),
 			PAX_ASLR_DELTA_EXEC_LSB, (pr != NULL) ? pr->pr_pax_aslr_compat_exec_len : pax_aslr_compat_exec_len);
 
@@ -666,7 +664,7 @@ pax_aslr_stack_gap(struct thread *td, uintptr_t *addr)
 	pr = pax_get_prison(td, NULL);
 
 	orig_addr = *addr;
-	*addr -= (td->td_proc->p_vmspace->vm_aslr_delta_stack) & (0xff << PAX_ASLR_DELTA_EXEC_LSB);
+	*addr -= td->td_proc->p_vmspace->vm_aslr_delta_stack;
 	pax_log_aslr(pr, __func__, "orig_addr=%p, new_addr=%p\n",
 	    (void *)orig_addr, (void *)*addr);
 	pax_ulog_aslr(pr, NULL, "orig_addr=%p, new_addr=%p\n",
@@ -686,7 +684,7 @@ pax_aslr_stack(struct thread *td, uintptr_t *addr)
 	pr = pax_get_prison(td, NULL);
 
 	orig_addr = *addr;
-	*addr -= (td->td_proc->p_vmspace->vm_aslr_delta_stack) & (~0xff << (PAX_ASLR_DELTA_EXEC_LSB+1));
+	*addr -= td->td_proc->p_vmspace->vm_aslr_delta_stack & (~0UL << PAX_ASLR_DELTA_STACK_LSB);
 	pax_log_aslr(pr, __func__, "orig_addr=%p, new_addr=%p\n",
 	    (void *)orig_addr, (void *)*addr);
 	pax_ulog_aslr(pr, NULL, "orig_addr=%p, new_addr=%p\n",
