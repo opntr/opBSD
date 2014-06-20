@@ -5,8 +5,6 @@ INTERNALPROG=
 NO_MAN=
 SRCS=	btxldr.S
 
-NO_PIE=yes
-
 CFLAGS+=-DLOADER_ADDRESS=${LOADER_ADDRESS}
 CFLAGS+=-I${.CURDIR}/../../../i386/common
 
