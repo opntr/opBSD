@@ -2979,3 +2979,4 @@ options 	RANDOM_RWFILE	# Read and write entropy cache
 
 # Address Space Layout Randomization (ASLR)
 options		PAX_ASLR
+options		PAX_SYSCTLS
