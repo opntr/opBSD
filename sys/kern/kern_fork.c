@@ -40,7 +40,6 @@ __FBSDID("$FreeBSD$");
 #include "opt_kdtrace.h"
 #include "opt_ktrace.h"
 #include "opt_kstack_pages.h"
-#include "opt_procdesc.h"
 #include "opt_pax.h"
 
 #include <sys/param.h>
@@ -69,7 +68,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/acct.h>
 #include <sys/ktr.h>
 #include <sys/ktrace.h>
-#include <sys/unistd.h>	
+#include <sys/unistd.h>
 #include <sys/sdt.h>
 #include <sys/sx.h>
 #include <sys/sysent.h>
@@ -771,15 +770,6 @@ fork1(struct thread *td, int flags, int pages, struct proc **procp,
 	static struct timeval lastfail;
 #ifdef PROCDESC
 	struct file *fp_procdesc = NULL;
-#endif
-
-#ifdef PAX_SEGVGUARD
-	if (td->td_proc->p_pid != 0) {
-		error = pax_segvguard(curthread, curthread->td_proc->p_textvp, 
-				td->td_proc->p_comm, PAX_SEGVGUARD_NOTCRASHED);
-		if (error)
-			return (error);
-	}
 #endif
 
 	/* Check for the undefined or unimplemented flags. */
