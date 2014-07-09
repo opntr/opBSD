@@ -30,6 +30,10 @@ SECTIONS
   .rela.data      : { *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*) }
   .rel.tdata	  : { *(.rel.tdata .rel.tdata.* .rel.gnu.linkonce.td.*) }
   .rela.tdata	  : { *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*) }
+  .rel.set_ksp_kpatch_set		: { *(.rel.set_ksp_kpatch_set) }
+  .rela.set_ksp_kpatch_set		: { *(.rela.set_ksp_kpatch_set) }
+  .rel.set_ksp_kpatch_patch_set		: { *(.rel.set_ksp_kpatch_patch_set) }
+  .rela.set_ksp_kpatch_patch_set	: { *(.rela.set_ksp_kpatch_patch_set) }
   .rel.tbss	  : { *(.rel.tbss .rel.tbss.* .rel.gnu.linkonce.tb.*) }
   .rela.tbss	  : { *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*) }
   .rel.ctors      : { *(.rel.ctors) }
@@ -140,6 +144,18 @@ SECTIONS
   .got            : { *(.got) }
   . = DATA_SEGMENT_RELRO_END (24, .);
   .got.plt        : { *(.got.plt) }
+  set_ksp_kpatch_set   :
+  {
+    PROVIDE ( __start_set_ksp_kpatch_set = . );
+    KEEP (*(set_ksp_kpatch_set));
+    PROVIDE ( __stop_set_ksp_kpatch_set = . );
+  }
+  set_ksp_kpatch_patch_set     :
+  {
+    PROVIDE ( __start_set_ksp_kpatch_patch_set = . );
+    KEEP (*(set_ksp_kpatch_patch_set));
+    PROVIDE ( __stop_set_ksp_kpatch_patch_set = . );
+  }
   .data           :
   {
     *(.data .data.* .gnu.linkonce.d.*)
