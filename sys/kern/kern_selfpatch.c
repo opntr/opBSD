@@ -26,6 +26,8 @@
  * $FreeBSD$
  */
 
+#include "opt_selfpatch.h"
+
 #include <sys/cdefs.h>
 
 #include <sys/param.h>
@@ -38,4 +40,16 @@
 
 #include <sys/selfpatch.h>
 
+void
+lf_selfpatch(linker_file_t lf)
+{
 
+	printf("NOT IMPLEMENTED: %s\n", __func__);
+}
+
+void
+lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *patch)
+{
+
+	printf("NOT IMPLEMENTED: %s\n", __func__);
+}
