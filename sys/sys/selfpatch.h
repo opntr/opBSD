@@ -26,6 +26,11 @@
  * $FreeBSD$
  */
 
+#ifndef __SELFPATH_H__
+#define __SELFPATH_H__
+
+#include <machine/_selfpatch.h>
+
 typedef struct lf_selfpatch {
 	void	*patchable;
 	void	*patch;
@@ -33,3 +38,7 @@ typedef struct lf_selfpatch {
 	int	feature;
 	char	*comment;
 } lf_selfpatch_t;
+
+extern char *selfpatch_nop_table[];
+
+#endif /* __SELFPATH_H__ */

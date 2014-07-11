@@ -26,16 +26,9 @@
  * $FreeBSD$
  */
 
-#include <sys/cdefs.h>
+#ifndef __X86_SELFPATH_H__
+#define __X86_SELFPATH_H__
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/kernel.h>
+extern char *md_selfpatch_nop_table[];
 
-#include <sys/linker.h>
-#include <sys/linker_set.h>
-
-#include <sys/selfpatch.h>
-
-
+#endif /* __X86_SELFPATH_H__ */
