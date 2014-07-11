@@ -41,4 +41,7 @@ typedef struct lf_selfpatch {
 
 extern char *selfpatch_nop_table[];
 
+void lf_selfpatch(linker_file_t lf);
+void lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *patch);
+
 #endif /* __SELFPATH_H__ */
