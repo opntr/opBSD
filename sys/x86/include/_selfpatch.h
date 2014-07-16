@@ -29,6 +29,16 @@
 #ifndef __X86_SELFPATH_H__
 #define __X86_SELFPATH_H__
 
+#define KSP_CPU_FEATURE		1
+#define KSP_CPU_FEATURE2	2
+#define KSP_AMD_FEATURE		3
+#define KSP_AMD_FEATURE2	4
+#define KSP_VIA_FEATURE_RNG	5
+#define KSP_VIA_FEATURE_XCRYPT	6
+#define KSP_CPU_STDEXT_FEATURE	7
+
 extern char *md_selfpatch_nop_table[];
+
+bool lf_selfpatch_patch_needed(struct lf_selfpatch *p);
 
 #endif /* __X86_SELFPATH_H__ */
