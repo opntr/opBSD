@@ -31,6 +31,8 @@
 
 #include <machine/_selfpatch.h>
 
+struct linker_file_t;
+
 typedef struct lf_selfpatch {
 	void	*patchable;
 	void	*patch;

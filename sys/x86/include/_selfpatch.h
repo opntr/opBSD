@@ -37,6 +37,8 @@
 #define KSP_VIA_FEATURE_XCRYPT	6
 #define KSP_CPU_STDEXT_FEATURE	7
 
+struct lf_selfpatch;
+
 extern char *md_selfpatch_nop_table[];
 
 bool lf_selfpatch_patch_needed(struct lf_selfpatch *p);
