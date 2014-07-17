@@ -81,6 +81,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/reboot.h>
 #include <sys/rwlock.h>
 #include <sys/sched.h>
+#include <sys/selfpatch.h>
 #include <sys/signalvar.h>
 #ifdef SMP
 #include <sys/smp.h>
@@ -1997,6 +1998,9 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	identify_cpu();		/* Final stage of CPU initialization */
 	initializecpu();	/* Initialize CPU registers */
 	initializecpucache();
+
+	/* selfmodify kernel text, when needed */
+	lf_selfpatch(linker_kernel_file);
 
 	/* doublefault stack space, runs on ist1 */
 	common_tss[0].tss_ist1 = (long)&dblfault_stack[sizeof(dblfault_stack)];
