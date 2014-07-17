@@ -42,13 +42,22 @@
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
+#define DBG(...)					\
+	if (bootverbose) {				\
+		printf("%s: ", __func__);		\
+		printf(__VA_ARGS__);			\
+	}
+
+extern struct lf_selfpatch __start_set_ksp_kpatch_set[];
+extern struct lf_selfpatch __stop_set_ksp_kpatch_set[];
+
 
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 {
-
 	if (p == NULL)
 		return (false);
+
 
 	switch (p->feature_selector) {
 	case  KSP_CPU_FEATURE         :
@@ -93,13 +102,25 @@ lf_selfpatch(linker_file_t lf)
 	struct lf_selfpatch *patch, *start, *stop;
 	int count, ret;
 
-	ret = linker_file_lookup_set(lf, "ksp_kpatch_set", &start, &stop, &count);
-	if (ret != 0) {
-		printf("linker_file_lookup_set faild to locate ksp_kpatch_set\n");
-		return;
+	if (lf != NULL) {
+		ret = linker_file_lookup_set(lf, "ksp_kpatch_set", &start, &stop, NULL);
+		DBG("start: %p stop: %p\n", start, stop);
+		if (ret != 0) {
+			DBG("failed to locate ksp_kpatch_set\n");
+			return;
+		}
+	} else {
+		DBG("kernel patching\n");
+		DBG("start: %p stop: %p\n", __start_set_ksp_kpatch_set, __stop_set_ksp_kpatch_set);
+		start = __stop_set_ksp_kpatch_set;
+		stop = __stop_set_ksp_kpatch_set;
 	}
 
+	count = stop - start;
+	DBG("count: %d\n", count);
+
 	for (patch = start; patch != stop; patch++) {
+		DBG("apply: %p\n", patch);
 		lf_selfpatch_apply(lf, patch);
 	}
 }
