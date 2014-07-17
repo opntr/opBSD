@@ -42,6 +42,7 @@
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
+
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 {
@@ -89,13 +90,28 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 void
 lf_selfpatch(linker_file_t lf)
 {
+	struct lf_selfpatch *patch, *start, *stop;
+	int count, ret;
 
-	printf("NOT IMPLEMENTED: %s\n", __func__);
+	ret = linker_file_lookup_set(lf, "ksp_kpatch_set", &start, &stop, &count);
+	if (ret != 0) {
+		printf("linker_file_lookup_set faild to locate ksp_kpatch_set\n");
+		return;
+	}
+
+	for (patch = start; patch != stop; patch++) {
+		lf_selfpatch_apply(lf, patch);
+	}
 }
 
 void
-lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *patch)
+lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 {
+	if (!lf_selfpatch_patch_needed(p))
+		return;
 
-	printf("NOT IMPLEMENTED: %s\n", __func__);
+	KASSERT(p->patch_size == p->patchable_size,
+	    ("%s: patch_size != patchable_size", __func__));
+
+	memcpy(p->patchable, p->patch, p->patchable_size);
 }
