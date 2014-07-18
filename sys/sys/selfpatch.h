@@ -29,6 +29,9 @@
 #ifndef __SELFPATH_H__
 #define __SELFPATH_H__
 
+#define KSP_SELFTEST		0
+#define KSP_FEATURE_SELFTEST	1
+
 #include <machine/_selfpatch.h>
 
 struct linker_file_t;

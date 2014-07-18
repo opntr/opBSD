@@ -60,6 +60,8 @@ static int selfpatch_debug=1;
 SYSCTL_INT(_debug, OID_AUTO, selfpatch_debug, CTLFLAG_RWTUN,
     &selfpatch_debug, 0, "Set various levels of selfpatch debug");
 
+void lf_selfpatch_selftest(void);
+
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 {
@@ -70,35 +72,38 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 	}
 
 	switch (p->feature_selector) {
-	case  KSP_CPU_FEATURE         :
+	case KSP_CPU_FEATURE         :
 		if ((cpu_feature & p->feature) != 0)
 			return (true);
 		break;
-	case  KSP_CPU_FEATURE2        :
+	case KSP_CPU_FEATURE2        :
 		if ((cpu_feature2 & p->feature) != 0)
 			return (true);
 		break;
-	case  KSP_AMD_FEATURE         :
+	case KSP_AMD_FEATURE         :
 		if ((amd_feature & p->feature) != 0)
 			return (true);
 		break;
-	case  KSP_AMD_FEATURE2        :
+	case KSP_AMD_FEATURE2        :
 		if ((amd_feature2 & p->feature) != 0)
 			return (true);
 		break;
-	case  KSP_VIA_FEATURE_RNG     :
+	case KSP_VIA_FEATURE_RNG     :
 		if ((via_feature_rng & p->feature) != 0)
 			return (true);
 		break;
-	case  KSP_VIA_FEATURE_XCRYPT  :
+	case KSP_VIA_FEATURE_XCRYPT  :
 		if ((via_feature_xcrypt & p->feature) != 0)
 			return (true);
 		break;
-	case  KSP_CPU_STDEXT_FEATURE  :
+	case KSP_CPU_STDEXT_FEATURE  :
 		if ((cpu_stdext_feature & p->feature) != 0)
 			return (true);
 		break;
-
+	case KSP_SELFTEST:
+		if ((p->feature & KSP_FEATURE_SELFTEST) != 0)
+			return (true);
+		break;
 	default:
 		return (false);
 	}
@@ -134,6 +139,11 @@ lf_selfpatch(linker_file_t lf)
 		DBG("apply: %p\n", patch);
 		lf_selfpatch_apply(lf, patch);
 	}
+
+	/*
+	 * when selfpatch does not works, the system should crash
+	 */
+	lf_selfpatch_selftest();
 }
 
 void
@@ -142,6 +152,14 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 	vm_paddr_t *pages;
 	vm_offset_t page_offset;
 	int i, page_number;
+
+	DBG("patchable: %p\n", p->patchable);
+	DBG("patch: %p\n", p->patch);
+	DBG("feature selector: %d\n", p->feature_selector);
+	DBG("feature: %d\n", p->feature);
+	DBG("patchable size: %d\n", p->patchable_size);
+	DBG("patch size: %d\n", p->patch_size);
+	DBG("comment: %s\n", p->comment);
 
 	if (!lf_selfpatch_patch_needed(p))
 		return;
@@ -183,5 +201,32 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 	DBG("done.\n");
 
 	free(pages, M_TEMP);
+}
+
+
+void
+lf_selfpatch_selftest(void)
+{
+	__asm __volatile(
+	"1:"
+	"	.byte 0xde,0xad,0xde,0xad ; "
+	"2:	"
+	"	.pushsection set_selfpatch_patch_set, \"ax\" ;  "
+	"3:	"
+	"	.byte 0x90,0x90,0x90,0x90 ;"
+	"4:	"
+	"	.popsection "
+	"	.pushsection set_selfpatch_set, \"a\" ; "
+	"		.quad   1b ; "
+	"		.quad   3b ; "
+	"		.int    2b-1b ;	"
+	"		.int    4b-3b ;	"
+	"		.int    0 ; "
+	"		.int    1 ; "
+	"		.quad	0 ; "
+	"	.popsection ; "
+	);
+
+	DBG("works.\n");
 }
 
