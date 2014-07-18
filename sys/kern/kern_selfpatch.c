@@ -128,7 +128,7 @@ lf_selfpatch(linker_file_t lf)
 	} else {
 		DBG("kernel patching\n");
 		DBG("start: %p stop: %p\n", __start_set_selfpatch_set, __stop_set_selfpatch_set);
-		start = __stop_set_selfpatch_set;
+		start = __start_set_selfpatch_set;
 		stop = __stop_set_selfpatch_set;
 	}
 
