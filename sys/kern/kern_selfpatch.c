@@ -38,12 +38,13 @@
 #include <sys/linker.h>
 #include <sys/linker_set.h>
 #include <sys/selfpatch.h>
+#include <sys/sysctl.h>
 
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
 #define DBG(...)					\
-	if (bootverbose) {				\
+	if (selfpatch_debug) {				\
 		printf("%s: ", __func__);		\
 		printf(__VA_ARGS__);			\
 	}
@@ -51,13 +52,18 @@
 extern struct lf_selfpatch __start_set_ksp_kpatch_set[];
 extern struct lf_selfpatch __stop_set_ksp_kpatch_set[];
 
+static int selfpatch_debug=1;
+SYSCTL_INT(_debug, OID_AUTO, selfpatch_debug, CTLFLAG_RWTUN,
+    &selfpatch_debug, 0, "Set various levels of selfpatch debug");
 
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 {
-	if (p == NULL)
-		return (false);
+	if (p == NULL) {
+		DBG("false\n");
 
+		return (false);
+	}
 
 	switch (p->feature_selector) {
 	case  KSP_CPU_FEATURE         :
@@ -133,6 +139,8 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 
 	KASSERT(p->patch_size == p->patchable_size,
 	    ("%s: patch_size != patchable_size", __func__));
+
+	DBG("%p\n", p->patch);
 
 	memcpy(p->patchable, p->patch, p->patchable_size);
 }
