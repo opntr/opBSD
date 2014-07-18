@@ -109,12 +109,13 @@ lf_selfpatch(linker_file_t lf)
 	int count, ret;
 
 	if (lf != NULL) {
+		DBG("module: %s\n", lf->filename);
 		ret = linker_file_lookup_set(lf, "ksp_kpatch_set", &start, &stop, NULL);
-		DBG("start: %p stop: %p\n", start, stop);
 		if (ret != 0) {
 			DBG("failed to locate ksp_kpatch_set\n");
 			return;
 		}
+		DBG("start: %p stop: %p\n", start, stop);
 	} else {
 		DBG("kernel patching\n");
 		DBG("start: %p stop: %p\n", __start_set_ksp_kpatch_set, __stop_set_ksp_kpatch_set);
