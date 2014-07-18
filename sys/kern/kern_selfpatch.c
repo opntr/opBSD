@@ -49,8 +49,8 @@
 		printf(__VA_ARGS__);			\
 	}
 
-extern struct lf_selfpatch __start_set_ksp_kpatch_set[];
-extern struct lf_selfpatch __stop_set_ksp_kpatch_set[];
+extern struct lf_selfpatch __start_set_selfpatch_set[];
+extern struct lf_selfpatch __stop_set_selfpatch_set[];
 
 static int selfpatch_debug=1;
 SYSCTL_INT(_debug, OID_AUTO, selfpatch_debug, CTLFLAG_RWTUN,
@@ -110,17 +110,17 @@ lf_selfpatch(linker_file_t lf)
 
 	if (lf != NULL) {
 		DBG("module: %s\n", lf->filename);
-		ret = linker_file_lookup_set(lf, "ksp_kpatch_set", &start, &stop, NULL);
+		ret = linker_file_lookup_set(lf, "selfpatch_set", &start, &stop, NULL);
 		if (ret != 0) {
-			DBG("failed to locate ksp_kpatch_set\n");
+			DBG("failed to locate selfpatch_set\n");
 			return;
 		}
 		DBG("start: %p stop: %p\n", start, stop);
 	} else {
 		DBG("kernel patching\n");
-		DBG("start: %p stop: %p\n", __start_set_ksp_kpatch_set, __stop_set_ksp_kpatch_set);
-		start = __stop_set_ksp_kpatch_set;
-		stop = __stop_set_ksp_kpatch_set;
+		DBG("start: %p stop: %p\n", __start_set_selfpatch_set, __stop_set_selfpatch_set);
+		start = __stop_set_selfpatch_set;
+		stop = __stop_set_selfpatch_set;
 	}
 
 	count = stop - start;
