@@ -182,7 +182,7 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 	    ("patch size longer than 3 page does not supported yet\n"));
 #endif
 
-	DBG("change mapping attribute from RX to RWX\n");
+	DBG("change mapping attribute from RX to RWX:\n");
 	for (i=0; i<page_number; i++) {
 		vm_paddr_t kva;
 
@@ -191,10 +191,6 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
 	}
 	DBG("done.\n");
-
-	DBG("patchable: %p\n", p->patchable);
-	DBG("patch: %p\n", p->patch);
-	DBG("patch size: %d\n", p->patchable_size);
 
 	memcpy(p->patchable, p->patch, p->patchable_size);
 
