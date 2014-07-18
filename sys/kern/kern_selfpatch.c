@@ -60,7 +60,7 @@ static int selfpatch_debug=1;
 SYSCTL_INT(_debug, OID_AUTO, selfpatch_debug, CTLFLAG_RWTUN,
     &selfpatch_debug, 0, "Set various levels of selfpatch debug");
 
-void lf_selfpatch_selftest(void);
+__noinline void lf_selfpatch_selftest(void);
 
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
@@ -211,12 +211,12 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 }
 
 
-void
+__noinline void
 lf_selfpatch_selftest(void)
 {
 	__asm __volatile(
 	"1:"
-	"	.byte 0xde,0xad,0xde,0xad ; "
+	"	ud2; ud2; ; "
 	"2:	"
 	"	.pushsection set_selfpatch_patch_set, \"ax\" ;  "
 	"3:	"
