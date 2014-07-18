@@ -53,6 +53,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/vnode.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
+#include <sys/selfpatch.h>
 
 #include <net/vnet.h>
 
@@ -420,6 +421,7 @@ linker_load_file(const char *filename, linker_file_t *result)
 				return (error);
 			}
 			modules = !TAILQ_EMPTY(&lf->modules);
+			lf_selfpatch(lf);
 			linker_file_register_sysctls(lf);
 			linker_file_sysinit(lf);
 			lf->flags |= LINKER_FILE_LINKED;
@@ -1607,6 +1609,8 @@ restart:
 			    lf->filename);
 			goto fail;
 		}
+		/* XXXOP - linker_kernel_file double patched?*/
+		lf_selfpatch(lf);
 		linker_file_register_modules(lf);
 		if (linker_file_lookup_set(lf, "sysinit_set", &si_start,
 		    &si_stop, NULL) == 0)
