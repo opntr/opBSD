@@ -34,8 +34,8 @@
 struct linker_file_t;
 
 typedef struct lf_selfpatch {
-	void	*patchable;
-	void	*patch;
+	char	*patchable;
+	char	*patch;
 	int	patchable_size;
 	int	patch_size;
 	int	feature_selector;

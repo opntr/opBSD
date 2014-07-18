@@ -34,11 +34,15 @@
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
 
 #include <sys/linker.h>
 #include <sys/linker_set.h>
 #include <sys/selfpatch.h>
 #include <sys/sysctl.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
 
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
@@ -135,13 +139,49 @@ lf_selfpatch(linker_file_t lf)
 void
 lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 {
+	vm_paddr_t *pages;
+	vm_offset_t page_offset;
+	int i, page_number;
+
 	if (!lf_selfpatch_patch_needed(p))
 		return;
 
 	KASSERT(p->patch_size == p->patchable_size,
 	    ("%s: patch_size != patchable_size", __func__));
 
-	DBG("%p\n", p->patch);
+	page_offset = (vm_offset_t)p->patchable & (vm_offset_t)PAGE_MASK;
+	page_number = (p->patchable_size >> PAGE_SHIFT) +
+	    ((page_offset + p->patchable_size) > PAGE_SIZE ? 2 : 1);
+
+	pages = malloc(page_number, M_TEMP, M_WAITOK | M_ZERO);
+
+	DBG("change mapping attribute from RX to RWX\n");
+	for (i=0; i<page_number; i++) {
+		vm_paddr_t kva;
+
+		kva = trunc_page(p->patchable) + i * PAGE_SIZE;
+		pages[i] = pmap_kextract(kva);
+		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
+	}
+	DBG("done.\n");
+
+	DBG("patchable: %p\n", p->patchable);
+	DBG("patch: %p\n", p->patch);
+	DBG("patch size: %d\n", p->patchable_size);
 
 	memcpy(p->patchable, p->patch, p->patchable_size);
+
+	DBG("patched.\n");
+
+	DBG("change mapping attribute from RWX to RX:\n");
+	for (i=0; i<page_number; i++) {
+		vm_paddr_t kva;
+
+		kva = trunc_page(p->patchable) + i * PAGE_SIZE;
+		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_EXECUTE);
+	}
+	DBG("done.\n");
+
+	free(pages, M_TEMP);
 }
+
