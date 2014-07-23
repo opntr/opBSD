@@ -64,11 +64,11 @@
 
 #define KSP_INSTR_XSAVE_XSAVEOPT(_ARG)					\
 	0723: 								\
-		xsave _ARG ; 						\
+		xsave ( _ARG ) ;					\
 	0724: 								\
 		.pushsection set_selfpatch_patch_set, "ax" ; 		\
 	0725: 								\
-		xsaveopt _ARG ;						\
+		xsaveopt ( _ARG ) ;					\
 	0726: 								\
 		.popsection 						\
 		.pushsection set_selfpatch_set, "a" ; 			\
