@@ -26,9 +26,9 @@
  * $FreeBSD$
  */
 
-#ifndef __AMD64_SELFPATH_H__
-#define __AMD64_SELFPATH_H__
+#ifndef __AMD64_SELFPATH_MACHDEP_H__
+#define __AMD64_SELFPATH_MACHDEP_H__
 
-#include <x86/_selfpatch.h>
+#include <x86/selfpatch-machdep.h>
 
-#endif /* __AMD64_SELFPATH_H__ */
+#endif /* __AMD64_SELFPATH_MACHDEP_H__ */
