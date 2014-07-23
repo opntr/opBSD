@@ -122,7 +122,7 @@ done_store_dr:
 1:	movq	%rdx,%rcx
 	movl	xsave_mask,%eax
 	movl	xsave_mask+4,%edx
-	_xsave_xsaveopt( (%r8) )
+	_xsave_xsaveopt	(%r8)
 	movq	%rcx,%rdx
 2:	smsw	%ax
 	orb	$CR0_TS,%al
