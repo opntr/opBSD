@@ -203,16 +203,6 @@ fpuinit_bsp1(void)
 		xsave_mask &= ~XFEATURE_AVX512;
 	if ((xsave_mask & XFEATURE_MPX) != XFEATURE_MPX)
 		xsave_mask &= ~XFEATURE_MPX;
-
-	cpuid_count(0xd, 0x1, cp);
-	if ((cp[0] & CPUID_EXTSTATE_XSAVEOPT) != 0) {
-		/*
-		 * Patch the XSAVE instruction in the cpu_switch code
-		 * to XSAVEOPT.  We assume that XSAVE encoding used
-		 * REX byte, and set the bit 4 of the r/m byte.
-		 */
-		ctx_switch_xsave[3] |= 0x10;
-	}
 }
 
 /*
