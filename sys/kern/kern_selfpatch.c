@@ -72,32 +72,32 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 	}
 
 	switch (p->feature_selector) {
-	case KSP_CPU_FEATURE         :
+	case KSP_CPUID :
 		if ((cpu_feature & p->feature) != 0)
 			return (true);
 		break;
-	case KSP_CPU_FEATURE2        :
+	case KSP_CPUID2 :
 		if ((cpu_feature2 & p->feature) != 0)
 			return (true);
 		break;
-	case KSP_AMD_FEATURE         :
+	case KSP_AMDID :
 		if ((amd_feature & p->feature) != 0)
 			return (true);
 		break;
-	case KSP_AMD_FEATURE2        :
+	case KSP_AMDID2 :
 		if ((amd_feature2 & p->feature) != 0)
 			return (true);
 		break;
-	case KSP_VIA_FEATURE_RNG     :
+	case KSP_CPUID_STDEXT :
+		if ((cpu_stdext_feature & p->feature) != 0)
+			return (true);
+		break;
+	case KSP_VIA_CPUID :
 		if ((via_feature_rng & p->feature) != 0)
 			return (true);
 		break;
-	case KSP_VIA_FEATURE_XCRYPT  :
+	case KSP_VIA_CRYPT_CWLO :
 		if ((via_feature_xcrypt & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_CPU_STDEXT_FEATURE  :
-		if ((cpu_stdext_feature & p->feature) != 0)
 			return (true);
 		break;
 	case KSP_SELFTEST:

@@ -30,13 +30,13 @@
 #ifndef	__X86_SELFPATCH_ASMACROS_H__
 #define	__X86_SELFPATCH_ASMACROS_H__
 
-#define KSP_CPU_FEATURE		1
-#define KSP_CPU_FEATURE2	2
-#define KSP_AMD_FEATURE		3
-#define KSP_AMD_FEATURE2	4
-#define KSP_VIA_FEATURE_RNG	5
-#define KSP_VIA_FEATURE_XCRYPT	6
-#define KSP_CPU_STDEXT_FEATURE	7
+#define KSP_CPUID		1
+#define KSP_CPUID2		2
+#define KSP_AMDID		3
+#define KSP_AMDID2		4
+#define KSP_CPUID_STDEXT	5
+#define KSP_VIA_CPUID		6
+#define KSP_VIA_CRYPT_CWLO	7
 
 /*
  * Intel Instruction Set Reference M-Z
@@ -76,7 +76,7 @@
 	"		.quad   0725b ; "				\
 	"		.int    0724b-0723b ;	"			\
 	"		.int    0726b-0725b ;	"			\
-	"		.int    " KSP_CPU_FEATURE2 " ; "		\
+	"		.int    " KSP_CPUID2 " ; "			\
 	"		.int    " CPUID2_OSXSAVE " ; "			\
 	"		.quad	0 ; "					\
 	"	.popsection ; "
@@ -98,7 +98,7 @@
 	"		.quad   0725b ; "				\
 	"		.int    0724b-0723b ;	"			\
 	"		.int    0726b-0725b ;	"			\
-	"		.int    " KSP_CPU_STDEXT_FEATURE " ; "		\
+	"		.int    " KSP_CPUID_STDEXT " ; "		\
 	"		.int    " CPUID_STDEXT_SMAP " ; "		\
 	"		.quad	0 ; "					\
 	"	.popsection ; "
@@ -120,7 +120,7 @@
 	"		.quad   0725b ; "				\
 	"		.int    0724b-0723b ;	"			\
 	"		.int    0726b-0725b ;	"			\
-	"		.int    " KSP_CPU_STDEXT_FEATURE " ; "		\
+	"		.int    " KSP_CPUID_STDEXT " ; "		\
 	"		.int    " CPUID_STDEXT_SMAP " ; "		\
 	"		.quad	0 ; "					\
 	"	.popsection ; "
