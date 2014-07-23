@@ -63,68 +63,73 @@
 #define	KSP_INSTR_NOP9	KSP_INSTR_INTEL_NOP9
 
 #define KSP_INSTR_XSAVE_XSAVEOPT(_ARG)					\
-	"0723:"								\
-	"	xsave " _ARG " ; "					\
-	"0724:	"							\
-	"	.pushsection set_selfpatch_patch_set, \"ax\" ;  "	\
-	"0725:	"							\
-	"	xsaveopt " _ARG " ;"					\
-	"0726:	"							\
-	"	.popsection "						\
-	"	.pushsection set_selfpatch_set, \"a\" ; "		\
-	"		.quad   0723b ; "				\
-	"		.quad   0725b ; "				\
-	"		.int    0724b-0723b ;	"			\
-	"		.int    0726b-0725b ;	"			\
-	"		.int    " KSP_CPUID2 " ; "			\
-	"		.int    " CPUID2_OSXSAVE " ; "			\
-	"		.quad	0 ; "					\
-	"	.popsection ; "
+	0723: 								\
+		xsave _ARG ; 						\
+	0724: 								\
+		.pushsection set_selfpatch_patch_set, "ax" ; 		\
+	0725: 								\
+		xsaveopt _ARG ;						\
+	0726: 								\
+		.popsection 						\
+		.pushsection set_selfpatch_set, "a" ; 			\
+			.quad   0723b ; 				\
+			.quad   0725b ; 				\
+			.int    0724b-0723b ; 				\
+			.int    0726b-0725b ; 				\
+			.int    KSP_CPUID2 ; 				\
+			.int    CPUID2_OSXSAVE ; 			\
+			.quad	0 ; 					\
+		.popsection ;
 
-#define _xsave_xsaveopt(_ARG)	KSP_INSTR_XSAVE_XSAVEOPT(_ARG)
-
+#ifndef _xsave_xsaveopt
+#define _xsave_xsaveopt(_ARG) KSP_INSTR_XSAVE_XSAVEOPT(_ARG)
+#endif
 
 #define KSP_INSTR_NOP3_CLAC						\
-	"0723:"								\
-	"	" KSP_INSTR_NOP3 " ; "					\
-	"0724:	"							\
-	"	.pushsection set_selfpatch_patch_set, \"ax\" ;  "	\
-	"0725:	"							\
-	"	clac " ;"						\
-	"0726:	"							\
-	"	.popsection "						\
-	"	.pushsection set_selfpatch_set, \"a\" ; "		\
-	"		.quad   0723b ; "				\
-	"		.quad   0725b ; "				\
-	"		.int    0724b-0723b ;	"			\
-	"		.int    0726b-0725b ;	"			\
-	"		.int    " KSP_CPUID_STDEXT " ; "		\
-	"		.int    " CPUID_STDEXT_SMAP " ; "		\
-	"		.quad	0 ; "					\
-	"	.popsection ; "
+	0723: 								\
+		KSP_INSTR_NOP3 ; 					\
+	0724: 								\
+		.pushsection set_selfpatch_patch_set, "ax" ; 		\
+	0725: 								\
+		clac ;							\
+	0726: 								\
+		.popsection 						\
+		.pushsection set_selfpatch_set, "a" ; 			\
+			.quad   0723b ; 				\
+			.quad   0725b ; 				\
+			.int    0724b-0723b ; 				\
+			.int    0726b-0725b ; 				\
+			.int    KSP_CPUID_STDEXT ; 			\
+			.int    CPUID_STDEXT_SMAP ; 			\
+			.quad	0 ; 					\
+		.popsection ;
 
+#ifndef	_clac
 #define _clac	KSP_INSTR_NOP3_CLAC
+#endif
 
 
 #define KSP_INSTR_NOP3_STAC						\
-	"0723:"								\
-	"	" KSP_INSTR_NOP3 " ; "					\
-	"0724:	"							\
-	"	.pushsection set_selfpatch_patch_set, \"ax\" ;  "	\
-	"0725:	"							\
-	"	stac " ;"						\
-	"0726:	"							\
-	"	.popsection "						\
-	"	.pushsection set_selfpatch_set, \"a\" ; "		\
-	"		.quad   0723b ; "				\
-	"		.quad   0725b ; "				\
-	"		.int    0724b-0723b ;	"			\
-	"		.int    0726b-0725b ;	"			\
-	"		.int    " KSP_CPUID_STDEXT " ; "		\
-	"		.int    " CPUID_STDEXT_SMAP " ; "		\
-	"		.quad	0 ; "					\
-	"	.popsection ; "
+	0723: 								\
+		KSP_INSTR_NOP3 ; 					\
+	0724: 								\
+		.pushsection set_selfpatch_patch_set, "ax" ; 		\
+	0725: 								\
+		stac ; 							\
+	0726: 								\
+		.popsection 						\
+		.pushsection set_selfpatch_set, "a" ; 			\
+			.quad   0723b ; 				\
+			.quad   0725b ; 				\
+			.int    0724b-0723b ; 				\
+			.int    0726b-0725b ; 				\
+			.int    KSP_CPUID_STDEXT ;			\
+			.int    CPUID_STDEXT_SMAP ; 			\
+			.quad	0 ; 					\
+		.popsection ;
 
+#ifndef _stac
 #define _stac	KSP_INSTR_NOP3_STAC
+#endif
 
 #endif /* __X86_SELFPATCH_ASMACROS_H__ */
