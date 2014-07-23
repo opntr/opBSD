@@ -26,13 +26,9 @@
  * $FreeBSD$
  */
 
-#ifndef __X86_SELFPATH_MACHDEP_H__
-#define __X86_SELFPATH_MACHDEP_H__
+#ifndef __AMD64_SELFPATH_ASMACROS_H__
+#define __AMD64_SELFPATH_ASMACROS_H__
 
-struct lf_selfpatch;
+#include <x86/selfpatch-asmacros.h>
 
-extern char *md_selfpatch_nop_table[];
-
-bool lf_selfpatch_patch_needed(struct lf_selfpatch *p);
-
-#endif /* __X86_SELFPATH_MACHDEP_H__ */
+#endif /* __AMD64_SELFPATH_ASMACROS_H__ */
