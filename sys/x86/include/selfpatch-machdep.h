@@ -26,8 +26,8 @@
  * $FreeBSD$
  */
 
-#ifndef __X86_SELFPATH_H__
-#define __X86_SELFPATH_H__
+#ifndef __X86_SELFPATH_MACHDEP_H__
+#define __X86_SELFPATH_MACHDEP_H__
 
 #define KSP_CPU_FEATURE		1
 #define KSP_CPU_FEATURE2	2
@@ -43,4 +43,4 @@ extern char *md_selfpatch_nop_table[];
 
 bool lf_selfpatch_patch_needed(struct lf_selfpatch *p);
 
-#endif /* __X86_SELFPATH_H__ */
+#endif /* __X86_SELFPATH_MACHDEP_H__ */
