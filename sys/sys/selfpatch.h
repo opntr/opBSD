@@ -33,6 +33,7 @@
 #define KSP_FEATURE_SELFTEST	1
 
 #include <machine/selfpatch-machdep.h>
+#include <machine/selfpatch-asmacros.h>
 
 struct linker_file_t;
 
