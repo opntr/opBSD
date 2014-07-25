@@ -43,6 +43,9 @@
 #error this file needs sys/cdefs.h as a prerequisite
 #endif
 
+#include <machine/specialreg.h>
+#include <machine/selfpatch-asmacros.h>
+
 struct region_descriptor;
 
 #define readb(va)	(*(volatile uint8_t *) (va))
@@ -594,14 +597,50 @@ static __inline void
 clac(void)
 {
 
-	__asm __volatile("clac" : : : "memory");
+	__asm __volatile(
+	"0723:                                                           "
+        "        " KSP_INSTR_NOP3_C ";		                         "
+        "0724:                                                           "
+        "        .pushsection set_selfpatch_patch_set, \"ax\" ;          "
+        "0725:                                                           "
+        "        clac ;                                                  "
+        "0726:                                                           "
+        "        .popsection                                             "
+        "        .pushsection set_selfpatch_set, \"a\" ;                 "
+        "                .quad   0723b ;                                 "
+        "                .quad   0725b ;                                 "
+        "                .int    0724b-0723b ;                           "
+        "                .int    0726b-0725b ;                           "
+        "                .int    " __XSTRING(KSP_CPUID_STDEXT) " ;       "
+        "                .int    " __XSTRING(CPUID_STDEXT_SMAP) " ;      "
+        "                .quad   0 ;                                     "
+        "        .popsection ;						 "
+			: : : "memory");
 }
 
 static __inline void
 stac(void)
 {
 
-	__asm __volatile("stac" : : : "memory");
+	__asm __volatile(
+	"0723:                                                           "
+        "        " KSP_INSTR_NOP3_C ";		                         "
+        "0724:                                                           "
+        "        .pushsection set_selfpatch_patch_set, \"ax\" ;          "
+        "0725:                                                           "
+        "        stac ;                                                  "
+        "0726:                                                           "
+        "        .popsection                                             "
+        "        .pushsection set_selfpatch_set, \"a\" ;                 "
+        "                .quad   0723b ;                                 "
+        "                .quad   0725b ;                                 "
+        "                .int    0724b-0723b ;                           "
+        "                .int    0726b-0725b ;                           "
+        "                .int    " __XSTRING(KSP_CPUID_STDEXT) " ;       "
+        "                .int    " __XSTRING(CPUID_STDEXT_SMAP) " ;      "
+        "                .quad   0 ;                                     "
+        "        .popsection ;						 "
+			: : : "memory");
 }
 
 #ifdef _KERNEL
