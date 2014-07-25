@@ -2000,7 +2000,7 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	initializecpucache();
 
 	/* selfmodify kernel text, when needed */
-	lf_selfpatch(linker_kernel_file);
+	lf_selfpatch(linker_kernel_file, 0);
 
 	/* doublefault stack space, runs on ist1 */
 	common_tss[0].tss_ist1 = (long)&dblfault_stack[sizeof(dblfault_stack)];
