@@ -101,13 +101,8 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 			return (true);
 		break;
 	case KSP_CPUID_EXTSTATE :
-		{
-			u_int cp[4];
-
-			cpuid_count(0xd, 0x1, cp);
-			if ((cp[0] & p->feature) != 0)
-				return (true);
-		}
+		if ((cpu_extstate & p->feature) != 0)
+			return (true);
 		break;
 	case KSP_SELFTEST:
 		if ((p->feature & KSP_FEATURE_SELFTEST) != 0)
