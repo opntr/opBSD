@@ -574,7 +574,7 @@ identify_cpu(void)
 	}
 
 	if (cpu_high >= 13) {
-		if (cpu_feature2 & CPUID2_OSXSAVE) {
+		if (cpu_feature2 & CPUID2_XSAVE) {
 			cpuid_count(13, 1, regs);
 			cpu_extstate = regs[0];
 		} else
