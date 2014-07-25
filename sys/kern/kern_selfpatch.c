@@ -158,11 +158,7 @@ lf_selfpatch(linker_file_t lf, int preload)
 void
 lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 {
-#if 0
-	vm_paddr_t *pages;
-#else
 	vm_paddr_t pages[4];
-#endif
 	vm_offset_t page_offset;
 	int i, page_number;
 
@@ -187,12 +183,10 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 	page_number = (p->patchable_size >> PAGE_SHIFT) +
 	    ((page_offset + p->patchable_size) > PAGE_SIZE ? 2 : 1);
 
-#if 0
-	pages = malloc(page_number, M_TEMP, M_WAITOK | M_ZERO);
-#else
+	DBG("page_number: %d\n", page_number);
+
 	KASSERT(page_number < 4,
 	    ("patch size longer than 3 page does not supported yet\n"));
-#endif
 
 	DBG("change mapping attribute from RX to RWX:\n");
 	for (i=0; i<page_number; i++) {
@@ -200,6 +194,8 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 
 		kva = trunc_page(p->patchable) + i * PAGE_SIZE;
 		pages[i] = pmap_kextract(kva);
+
+		DBG("kva: %p page: %p\n", (void *)kva, (void *)pages[i]);
 		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
 	}
 	DBG("done.\n");
@@ -216,10 +212,6 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_EXECUTE);
 	}
 	DBG("done.\n");
-
-#if 0
-	free(pages, M_TEMP);
-#endif
 }
 
 void
