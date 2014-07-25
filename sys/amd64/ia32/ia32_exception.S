@@ -27,6 +27,8 @@
  */
 
 #include <machine/asmacros.h>
+#include <machine/specialreg.h>
+#include <machine/selfpatch-asmacros.h>
 
 #include "assym.s"
 
@@ -67,7 +69,7 @@ IDTVEC(int0x80_syscall)
 	movq	%r14,TF_R14(%rsp)
 	movq	%r15,TF_R15(%rsp)
 	movl	$TF_HASSEGS,TF_FLAGS(%rsp)
-	clac
+	_clac
 	cld
 	FAKE_MCOUNT(TF_RIP(%rsp))
 	movq	%rsp, %rdi
