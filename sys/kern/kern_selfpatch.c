@@ -169,8 +169,11 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 	DBG("patch size: %d\n", p->patch_size);
 	DBG("comment: %s\n", p->comment);
 
-	if (!lf_selfpatch_patch_needed(p))
+	if (!lf_selfpatch_patch_needed(p)) {
+		DBG("not needed.\n");
+
 		return;
+	}
 
 	KASSERT(p->patch_size == p->patchable_size,
 	    ("%s: patch_size != patchable_size", __func__));
