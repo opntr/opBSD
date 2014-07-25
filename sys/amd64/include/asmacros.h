@@ -33,6 +33,8 @@
 #define _MACHINE_ASMACROS_H_
 
 #include <sys/cdefs.h>
+#include <machine/specialreg.h>
+#include <machine/selfpatch-asmacros.h>
 
 /* XXX too much duplication in various asm*.h's. */
 
@@ -167,7 +169,7 @@
 	movw	%es,TF_ES(%rsp) ;					\
 	movw	%ds,TF_DS(%rsp) ;					\
 	movl	$TF_HASSEGS,TF_FLAGS(%rsp) ;				\
-	clac;								\
+	_clac;								\
 	cld
 
 #define POP_FRAME							\
