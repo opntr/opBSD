@@ -116,10 +116,12 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 }
 
 void
-lf_selfpatch(linker_file_t lf)
+lf_selfpatch(linker_file_t lf, int preload)
 {
 	struct lf_selfpatch *patch, *start, *stop;
 	int count, ret;
+
+	DBG("lf: %p %s\n", lf, preload ? "(preloaded)" : "");
 
 	if (lf != NULL) {
 		DBG("module: %s\n", lf->filename);
@@ -141,7 +143,10 @@ lf_selfpatch(linker_file_t lf)
 
 	for (patch = start; patch != stop; patch++) {
 		DBG("apply: %p\n", patch);
-		lf_selfpatch_apply(lf, patch);
+		if (preload == KSP_PRELOAD)
+			lf_selfpatch_apply_preload(lf, patch);
+		else
+			lf_selfpatch_apply(lf, patch);
 	}
 
 	/*
@@ -217,6 +222,31 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 #endif
 }
 
+void
+lf_selfpatch_apply_preload(linker_file_t lf, struct lf_selfpatch *p)
+{
+
+	DBG("patchable: %p\n", p->patchable);
+	DBG("patch: %p\n", p->patch);
+	DBG("feature selector: %d\n", p->feature_selector);
+	DBG("feature: %d\n", p->feature);
+	DBG("patchable size: %d\n", p->patchable_size);
+	DBG("patch size: %d\n", p->patch_size);
+	DBG("comment: %s\n", p->comment);
+
+	if (!lf_selfpatch_patch_needed(p)) {
+		DBG("not needed.\n");
+
+		return;
+	}
+
+	if (p->patch_size != p->patchable_size)
+		panic("%s: patch_size != patchable_size", __func__);
+
+	memcpy(p->patchable, p->patch, p->patchable_size);
+
+	DBG("patched.\n");
+}
 
 __noinline void
 lf_selfpatch_selftest(void)
