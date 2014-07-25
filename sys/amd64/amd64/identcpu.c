@@ -573,6 +573,14 @@ identify_cpu(void)
 		cpu_stdext_feature &= ~cpu_stdext_disable;
 	}
 
+	if (cpu_high >= 13) {
+		if (cpu_feature2 & CPUID2_OSXSAVE) {
+			cpuid_count(13, 1, regs);
+			cpu_extstate = regs[0];
+		} else
+			cpu_extstate = 0;
+	}
+
 	if (cpu_vendor_id == CPU_VENDOR_INTEL ||
 	    cpu_vendor_id == CPU_VENDOR_AMD ||
 	    cpu_vendor_id == CPU_VENDOR_CENTAUR) {
