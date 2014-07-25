@@ -836,7 +836,7 @@ pmap_bootstrap(vm_paddr_t *firstaddr)
 		load_cr4(rcr4() | CR4_SMEP);
 
 	if (cpu_stdext_feature & CPUID_STDEXT_SMAP) {
-		printf("Intel SMAP: enable\n");
+		printf("Intel SMAP: enabled\n");
 		load_cr4(rcr4() | CR4_SMAP);
 	} else {
 		printf("Intel SMAP: not supported or disabled\n");
