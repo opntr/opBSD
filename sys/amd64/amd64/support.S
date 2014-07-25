@@ -35,6 +35,8 @@
 #include <machine/asmacros.h>
 #include <machine/intr_machdep.h>
 #include <machine/pmap.h>
+#include <machine/specialreg.h>
+#include <machine/selfpatch-asmacros.h>
 
 #include "assym.s"
 
@@ -247,16 +249,16 @@ ENTRY(copyout)
 
 	shrq	$3,%rcx
 	cld
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	rep
 	movsq
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	movb	%dl,%cl
 	andb	$7,%cl
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	rep
 	movsb
-	clac					/* close user-space */
+	_clac					/* close user-space */
 
 done_copyout:
 	xorl	%eax,%eax
@@ -300,16 +302,16 @@ ENTRY(copyin)
 	movb	%cl,%al
 	shrq	$3,%rcx				/* copy longword-wise */
 	cld
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	rep
 	movsq
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	movb	%al,%cl
 	andb	$7,%cl				/* copy remaining bytes */
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	rep
 	movsb
-	clac					/* close user-space */
+	_clac					/* close user-space */
 
 done_copyin:
 	xorl	%eax,%eax
@@ -341,12 +343,12 @@ ENTRY(casuword32)
 	ja	fusufault
 
 	movl	%esi,%eax			/* old */
-	stac					/* open user-space */
+	_stac					/* open user-space */
 #ifdef SMP
 	lock
 #endif
 	cmpxchgl %edx,(%rdi)			/* new = %edx */
-	clac					/* close user-space */
+	_clac					/* close user-space */
 
 	/*
 	 * The old value is in %eax.  If the store succeeded it will be the
@@ -372,12 +374,12 @@ ENTRY(casuword)
 	ja	fusufault
 
 	movq	%rsi,%rax			/* old */
-	stac					/* open user-space */
+	_stac					/* open user-space */
 #ifdef SMP
 	lock
 #endif
 	cmpxchgq %rdx,(%rdi)			/* new = %rdx */
-	clac					/* close user-space */
+	_clac					/* close user-space */
 
 	/*
 	 * The old value is in %eax.  If the store succeeded it will be the
@@ -406,9 +408,9 @@ ENTRY(fuword)
 	cmpq	%rax,%rdi			/* verify address is valid */
 	ja	fusufault
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movq	(%rdi),%rax
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	movq	$0,PCB_ONFAULT(%rcx)
 	ret
 END(fuword64)
@@ -422,9 +424,9 @@ ENTRY(fuword32)
 	cmpq	%rax,%rdi			/* verify address is valid */
 	ja	fusufault
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movl	(%rdi),%eax
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	movq	$0,PCB_ONFAULT(%rcx)
 	ret
 END(fuword32)
@@ -451,9 +453,9 @@ ENTRY(fuword16)
 	cmpq	%rax,%rdi
 	ja	fusufault
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movzwl	(%rdi),%eax
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	movq	$0,PCB_ONFAULT(%rcx)
 	ret
 END(fuword16)
@@ -466,9 +468,9 @@ ENTRY(fubyte)
 	cmpq	%rax,%rdi
 	ja	fusufault
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movzbl	(%rdi),%eax
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	movq	$0,PCB_ONFAULT(%rcx)
 	ret
 END(fubyte)
@@ -498,9 +500,9 @@ ENTRY(suword)
 	cmpq	%rax,%rdi			/* verify address validity */
 	ja	fusufault
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movq	%rsi,(%rdi)
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	xorl	%eax,%eax
 	movq	PCPU(CURPCB),%rcx
 	movq	%rax,PCB_ONFAULT(%rcx)
@@ -516,9 +518,9 @@ ENTRY(suword32)
 	cmpq	%rax,%rdi			/* verify address validity */
 	ja	fusufault
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movl	%esi,(%rdi)
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	xorl	%eax,%eax
 	movq	PCPU(CURPCB),%rcx
 	movq	%rax,PCB_ONFAULT(%rcx)
@@ -533,9 +535,9 @@ ENTRY(suword16)
 	cmpq	%rax,%rdi			/* verify address validity */
 	ja	fusufault
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movw	%si,(%rdi)
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	xorl	%eax,%eax
 	movq	PCPU(CURPCB),%rcx		/* restore trashed register */
 	movq	%rax,PCB_ONFAULT(%rcx)
@@ -551,9 +553,9 @@ ENTRY(subyte)
 	ja	fusufault
 
 	movl	%esi,%eax
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movb	%al,(%rdi)
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	xorl	%eax,%eax
 	movq	PCPU(CURPCB),%rcx		/* restore trashed register */
 	movq	%rax,PCB_ONFAULT(%rcx)
@@ -595,9 +597,9 @@ ENTRY(copyinstr)
 	decq	%rdx
 	jz	3f
 
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	lodsb
-	clac					/* close user-space */
+	_clac					/* close user-space */
 	stosb
 	orb	%al,%al
 	jnz	2b
@@ -626,9 +628,9 @@ cpystrflt_x:
 	testq	%r9,%r9
 	jz	1f
 	subq	%rdx,%r8
-	stac					/* open user-space */
+	_stac					/* open user-space */
 	movq	%r8,(%r9)
-	clac					/* close user-space */
+	_clac					/* close user-space */
 1:
 	ret
 END(copyinstr)
