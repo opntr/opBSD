@@ -42,6 +42,7 @@
 #include <machine/psl.h>
 #include <machine/trap.h>
 #include <machine/specialreg.h>
+#include <machine/selfpatch-asmacros.h>
 
 #include "assym.s"
 
@@ -198,7 +199,7 @@ alltraps_pushregs_no_rdi:
 	movq	%r14,TF_R14(%rsp)
 	movq	%r15,TF_R15(%rsp)
 	movl	$TF_HASSEGS,TF_FLAGS(%rsp)
-	clac
+	_clac
 	cld
 	FAKE_MCOUNT(TF_RIP(%rsp))
 #ifdef KDTRACE_HOOKS
@@ -279,7 +280,7 @@ IDTVEC(dblfault)
 	movw	%es,TF_ES(%rsp)
 	movw	%ds,TF_DS(%rsp)
 	movl	$TF_HASSEGS,TF_FLAGS(%rsp)
-	clac
+	_clac
 	cld
 	testb	$SEL_RPL_MASK,TF_CS(%rsp) /* Did we come from kernel? */
 	jz	1f			/* already running with kernel GS.base */
@@ -383,7 +384,7 @@ IDTVEC(fast_syscall)
 	movq	%r14,TF_R14(%rsp)	/* C preserved */
 	movq	%r15,TF_R15(%rsp)	/* C preserved */
 	movl	$TF_HASSEGS,TF_FLAGS(%rsp)
-	clac
+	_clac
 	cld
 	FAKE_MCOUNT(TF_RIP(%rsp))
 	movq	PCPU(CURTHREAD),%rdi
@@ -455,7 +456,7 @@ IDTVEC(fast_syscall32)
  */
 
 IDTVEC(nmi)
-	clac			/* XXXOP */
+	_clac
 	subq	$TF_RIP,%rsp
 	movl	$(T_NMI),TF_TRAPNO(%rsp)
 	movq	$0,TF_ADDR(%rsp)
@@ -539,7 +540,7 @@ nmi_calltrap:
 	movq	%rdx,%rdi	/* destination stack pointer */
 
 	shrq	$3,%rcx		/* trap frame size in long words */
-	clac			/* XXXOP */
+	_clac
 	cld
 	rep
 	movsq			/* copy trapframe */
