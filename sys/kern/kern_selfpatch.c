@@ -175,8 +175,8 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 		return;
 	}
 
-	KASSERT(p->patch_size == p->patchable_size,
-	    ("%s: patch_size != patchable_size", __func__));
+	if (p->patch_size != p->patchable_size)
+		panic("%s: patch_size != patchable_size", __func__);
 
 	page_offset = (vm_offset_t)p->patchable & (vm_offset_t)PAGE_MASK;
 	page_number = (p->patchable_size >> PAGE_SHIFT) +
