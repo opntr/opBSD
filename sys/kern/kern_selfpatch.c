@@ -116,12 +116,12 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 }
 
 void
-lf_selfpatch(linker_file_t lf, int preload)
+lf_selfpatch(linker_file_t lf, int mod)
 {
 	struct lf_selfpatch *patch, *start, *stop;
 	int count, ret;
 
-	DBG("lf: %p %s\n", lf, preload ? "(preloaded)" : "");
+	DBG("lf: %p %s\n", lf, mod ? "(module)" : "(kernel)");
 
 	if (lf != NULL) {
 		DBG("module: %s\n", lf->filename);
@@ -143,8 +143,8 @@ lf_selfpatch(linker_file_t lf, int preload)
 
 	for (patch = start; patch != stop; patch++) {
 		DBG("apply: %p\n", patch);
-		if (preload == KSP_PRELOAD)
-			lf_selfpatch_apply_preload(lf, patch);
+		if (mod == KSP_MODULE)
+			lf_selfpatch_apply_module(lf, patch);
 		else
 			lf_selfpatch_apply(lf, patch);
 	}
@@ -215,7 +215,7 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 }
 
 void
-lf_selfpatch_apply_preload(linker_file_t lf, struct lf_selfpatch *p)
+lf_selfpatch_apply_module(linker_file_t lf, struct lf_selfpatch *p)
 {
 
 	DBG("patchable: %p\n", p->patchable);

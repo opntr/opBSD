@@ -36,7 +36,7 @@
 
 #include <machine/selfpatch-machdep.h>
 
-#define KSP_PRELOAD		1
+#define KSP_MODULE		1
 
 struct linker_file_t;
 
@@ -52,8 +52,8 @@ typedef struct lf_selfpatch {
 
 extern char *selfpatch_nop_table[];
 
-void lf_selfpatch(linker_file_t lf, int preload);
+void lf_selfpatch(linker_file_t lf, int mod);
 void lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *patch);
-void lf_selfpatch_apply_preload(linker_file_t lf, struct lf_selfpatch *patch);
+void lf_selfpatch_apply_module(linker_file_t lf, struct lf_selfpatch *patch);
 
 #endif /* __SELFPATH_H__ */
