@@ -195,8 +195,6 @@ struct prison {
 	int		 pr_pax_aslr_compat_mmap_len;	/* (p) Number of bits randomized with mmap (compat32) */
 	int		 pr_pax_aslr_compat_stack_len;	/* (p) Number of bits randomized with stack (compat32) */
 	int		 pr_pax_aslr_compat_exec_len;	/* (p) Number of bits randomized with the execbase (compat32) */
-	int		 pr_pax_log_log;		/* (p) PaX system logging*/
-	int		 pr_pax_log_ulog;		/* (p) PaX user logging*/
 };
 
 struct prison_racct {
