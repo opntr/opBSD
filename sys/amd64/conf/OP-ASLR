@@ -70,7 +70,6 @@ options 	HWPMC_HOOKS		# Necessary kernel hooks for hwpmc(4)
 options 	AUDIT			# Security event auditing
 options 	CAPABILITY_MODE		# Capsicum capability mode
 options 	CAPABILITIES		# Capsicum capabilities
-options 	PROCDESC		# Support for process descriptors
 options 	MAC			# TrustedBSD MAC Framework
 #options 	KDTRACE_FRAME		# Ensure frames are compiled in
 #options 	KDTRACE_HOOKS		# Kernel DTrace hooks
@@ -178,6 +177,11 @@ options 	VESA		# Add support for VESA BIOS Extensions (VBE)
 # syscons is the default console driver, resembling an SCO console
 device		sc
 options 	SC_PIXEL_MODE	# add support for the raster text mode
+
+# vt is the new video console driver
+device		vt
+device		vt_vga
+device		vt_efifb
 
 device		agp		# support several AGP chipsets
 
@@ -384,4 +388,6 @@ options 	ALT_BREAK_TO_DEBUGGER
 options 	BREAK_TO_DEBUGGER
 
 options		PAX_ASLR
+options		PAX_SYSCTLS
+options		KTR
 options		MAC_BSDEXTENDED
