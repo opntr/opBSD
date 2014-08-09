@@ -117,9 +117,9 @@ lf_selfpatch(linker_file_t lf, int mod)
 		DBG("start: %p stop: %p\n", start, stop);
 	} else {
 		DBG("kernel patching\n");
-		DBG("start: %p stop: %p\n", __start_set_selfpatch_set, __stop_set_selfpatch_set);
 		start = __start_set_selfpatch_set;
 		stop = __stop_set_selfpatch_set;
+		DBG("start: %p stop: %p\n", start, stop);
 	}
 
 	count = stop - start;
