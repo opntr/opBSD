@@ -193,7 +193,9 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 		pages[i] = pmap_kextract(kva);
 
 		DBG("kva: %p page: %p\n", (void *)kva, (void *)pages[i]);
+#ifdef NOT_THE_RIGHT_API
 		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
+#endif
 	}
 	DBG("done.\n");
 
@@ -206,7 +208,9 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 		vm_paddr_t kva;
 
 		kva = trunc_page(p->patchable) + i * PAGE_SIZE;
+#ifdef NOT_THE_RIGHT_API
 		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_EXECUTE);
+#endif
 	}
 	DBG("done.\n");
 
