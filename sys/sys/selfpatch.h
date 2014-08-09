@@ -31,7 +31,17 @@
 
 #include <machine/selfpatch-asmacros.h>
 
-#define KSP_SELFTEST		0
+#define KSP_NULL		0
+#define KSP_SELFTEST		-1
+
+struct ksp_selector_entry {
+	const int	feature_selector;
+	const int	*featurep;
+};
+#define KSP_SELECTOR_END	{KSP_NULL, NULL}
+
+extern struct ksp_selector_entry ksp_selector_table[];
+
 #define KSP_FEATURE_SELFTEST	1
 
 #include <machine/selfpatch-machdep.h>

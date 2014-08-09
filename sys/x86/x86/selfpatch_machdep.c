@@ -32,9 +32,24 @@
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/kernel.h>
-
 #include <sys/linker.h>
 #include <sys/linker_set.h>
-
 #include <sys/selfpatch.h>
+
+#include <machine/md_var.h>
+#include <machine/specialreg.h>
+
+struct ksp_selector_entry ksp_selector_table[] = {
+	/* feature_selector	feature pointer */
+	{KSP_CPUID,		&cpu_feature},
+	{KSP_CPUID2,		&cpu_feature2},
+	{KSP_AMDID,		&amd_feature},
+	{KSP_AMDID2,		&amd_feature2},
+	{KSP_CPUID_STDEXT,	&cpu_stdext_feature},
+	{KSP_VIA_CPUID,		&via_feature_rng},
+	{KSP_VIA_CRYPT_CWLO,	&via_feature_xcrypt},
+	{KSP_CPUID_EXTSTATE,	&cpu_extstate},
+
+	KSP_SELECTOR_END
+};
 
