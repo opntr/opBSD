@@ -36,6 +36,7 @@
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 
+#include <sys/jail.h>
 #include <sys/linker.h>
 #include <sys/linker_set.h>
 #include <sys/selfpatch.h>
@@ -115,7 +116,7 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 	return (false);
 }
 
-void
+int
 lf_selfpatch(linker_file_t lf, int mod)
 {
 	struct lf_selfpatch *patch, *start, *stop;
@@ -128,7 +129,7 @@ lf_selfpatch(linker_file_t lf, int mod)
 		ret = linker_file_lookup_set(lf, "selfpatch_set", &start, &stop, NULL);
 		if (ret != 0) {
 			DBG("failed to locate selfpatch_set\n");
-			return;
+			return (0);
 		}
 		DBG("start: %p stop: %p\n", start, stop);
 	} else {
@@ -143,24 +144,35 @@ lf_selfpatch(linker_file_t lf, int mod)
 
 	for (patch = start; patch != stop; patch++) {
 		DBG("apply: %p\n", patch);
-		if (mod == KSP_MODULE)
-			lf_selfpatch_apply_module(lf, patch);
-		else
-			lf_selfpatch_apply(lf, patch);
+		if (mod == KSP_MODULE) {
+			ret = lf_selfpatch_apply_module(lf, patch);
+			if (ret != 0)
+				return (ret);
+		} else {
+			ret = lf_selfpatch_apply(lf, patch);
+			if (ret != 0)
+				return (ret);
+		}
 	}
 
 	/*
 	 * when selfpatch does not works, the system should crash
 	 */
 	lf_selfpatch_selftest();
+
+	return (0);
 }
 
-void
+int
 lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 {
 	vm_paddr_t pages[4];
 	vm_offset_t page_offset;
 	int i, page_number;
+
+	/* Refuse to patch if securelevel raised */
+	if (prison0.pr_securelevel > 0)
+		return (EPERM);
 
 	DBG("patchable: %p\n", p->patchable);
 	DBG("patch: %p\n", p->patch);
@@ -173,7 +185,7 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 	if (!lf_selfpatch_patch_needed(p)) {
 		DBG("not needed.\n");
 
-		return;
+		return (0);
 	}
 
 	if (p->patch_size != p->patchable_size)
@@ -212,11 +224,17 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_EXECUTE);
 	}
 	DBG("done.\n");
+
+	return (0);
 }
 
-void
+int
 lf_selfpatch_apply_module(linker_file_t lf, struct lf_selfpatch *p)
 {
+
+	/* Refuse to patch if securelevel raised */
+	if (prison0.pr_securelevel > 0)
+		return (EPERM);
 
 	DBG("patchable: %p\n", p->patchable);
 	DBG("patch: %p\n", p->patch);
@@ -229,7 +247,7 @@ lf_selfpatch_apply_module(linker_file_t lf, struct lf_selfpatch *p)
 	if (!lf_selfpatch_patch_needed(p)) {
 		DBG("not needed.\n");
 
-		return;
+		return (0);
 	}
 
 	if (p->patch_size != p->patchable_size)
@@ -238,6 +256,8 @@ lf_selfpatch_apply_module(linker_file_t lf, struct lf_selfpatch *p)
 	memcpy(p->patchable, p->patch, p->patchable_size);
 
 	DBG("patched.\n");
+
+	return (0);
 }
 
 __noinline void
