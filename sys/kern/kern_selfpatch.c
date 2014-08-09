@@ -66,52 +66,33 @@ __noinline void lf_selfpatch_selftest(void);
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 {
+	struct ksp_selector_entry	*e, *matched;
+
 	if (p == NULL) {
 		DBG("false\n");
 
 		return (false);
 	}
 
-	switch (p->feature_selector) {
-	case KSP_CPUID :
-		if ((cpu_feature & p->feature) != 0)
+	matched = NULL;
+	for (e = ksp_selector_table;
+	    (e->feature_selector != KSP_NULL) && (e->featurep != NULL);
+	    e++) {
+		if (e->feature_selector == p->feature_selector) {
+			matched = e;
+			break;
+		}
+	}
+
+	if (matched != NULL) {
+		if ( (*(matched->featurep) & p->feature) != 0)
 			return (true);
-		break;
-	case KSP_CPUID2 :
-		if ((cpu_feature2 & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_AMDID :
-		if ((amd_feature & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_AMDID2 :
-		if ((amd_feature2 & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_CPUID_STDEXT :
-		if ((cpu_stdext_feature & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_VIA_CPUID :
-		if ((via_feature_rng & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_VIA_CRYPT_CWLO :
-		if ((via_feature_xcrypt & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_CPUID_EXTSTATE :
-		if ((cpu_extstate & p->feature) != 0)
-			return (true);
-		break;
-	case KSP_SELFTEST:
+
+	}
+
+	if (p->feature_selector == KSP_SELFTEST)
 		if ((p->feature & KSP_FEATURE_SELFTEST) != 0)
 			return (true);
-		break;
-	default:
-		return (false);
-	}
 
 	return (false);
 }
@@ -277,8 +258,8 @@ lf_selfpatch_selftest(void)
 	"		.quad   3b ; "
 	"		.int    2b-1b ;	"
 	"		.int    4b-3b ;	"
-	"		.int    0 ; "
-	"		.int    1 ; "
+	"		.int    " __XSTRING(KSP_SELFTEST) " ; "
+	"		.int    " __XSTRING(KSP_FEATURE_SELFTEST) " ; "
 	"		.quad	0 ; "
 	"	.popsection ; "
 	);
