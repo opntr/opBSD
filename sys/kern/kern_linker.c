@@ -421,7 +421,11 @@ linker_load_file(const char *filename, linker_file_t *result)
 				return (error);
 			}
 			modules = !TAILQ_EMPTY(&lf->modules);
-			lf_selfpatch(lf, KSP_MODULE);
+			error = lf_selfpatch(lf, KSP_MODULE);
+			if (error != 0) {
+				linker_file_unload(lf, LINKER_UNLOAD_FORCE);
+				return (error);
+			}
 			linker_file_register_sysctls(lf);
 			linker_file_sysinit(lf);
 			lf->flags |= LINKER_FILE_LINKED;
@@ -1611,7 +1615,12 @@ restart:
 		}
 		linker_file_register_modules(lf);
 		/* XXXOP */
-		lf_selfpatch(lf, KSP_MODULE);
+		error = lf_selfpatch(lf, KSP_MODULE);
+		if (error != 0) {
+			printf("KLD file %s - could not selfpatching\n",
+			    lf->filename);
+			goto fail;
+		}
 		if (linker_file_lookup_set(lf, "sysinit_set", &si_start,
 		    &si_stop, NULL) == 0)
 			sysinit_add(si_start, si_stop);
