@@ -61,7 +61,9 @@ static int selfpatch_debug=1;
 SYSCTL_INT(_debug, OID_AUTO, selfpatch_debug, CTLFLAG_RWTUN,
     &selfpatch_debug, 0, "Set various levels of selfpatch debug");
 
+#ifdef KSP_DEBUG
 __noinline void lf_selfpatch_selftest(void);
+#endif
 
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
@@ -84,15 +86,15 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 		}
 	}
 
-	if (matched != NULL) {
-		if ( (*(matched->featurep) & p->feature) != 0)
+	if (matched != NULL)
+		if ((*(matched->featurep) & p->feature) != 0)
 			return (true);
 
-	}
-
+#ifdef KSP_DEBUG
 	if (p->feature_selector == KSP_SELFTEST)
 		if ((p->feature & KSP_FEATURE_SELFTEST) != 0)
 			return (true);
+#endif
 
 	return (false);
 }
@@ -136,10 +138,12 @@ lf_selfpatch(linker_file_t lf, int mod)
 		}
 	}
 
+#ifdef KSP_DEBUG
 	/*
 	 * when selfpatch does not works, the system should crash
 	 */
 	lf_selfpatch_selftest();
+#endif
 
 	return (0);
 }
@@ -241,6 +245,7 @@ lf_selfpatch_apply_module(linker_file_t lf, struct lf_selfpatch *p)
 	return (0);
 }
 
+#ifdef KSP_DEBUG
 __noinline void
 lf_selfpatch_selftest(void)
 {
@@ -266,4 +271,4 @@ lf_selfpatch_selftest(void)
 
 	DBG("works.\n");
 }
-
+#endif
