@@ -93,6 +93,10 @@ int pax_aslr_compat_exec_len = PAX_ASLR_COMPAT_DELTA_EXEC_MIN_LEN;
 #endif /* PAX_ASLR_MAX_SEC */
 #endif /* COMPAT_FREEBSD32 */
 
+#ifdef MAP_32BIT
+int pax_aslr_allow_map_32bit = 0;
+#endif
+
 TUNABLE_INT("security.pax.aslr.status", &pax_aslr_status);
 TUNABLE_INT("security.pax.aslr.mmap_len", &pax_aslr_mmap_len);
 TUNABLE_INT("security.pax.aslr.debug", &pax_aslr_debug);
@@ -103,6 +107,9 @@ TUNABLE_INT("security.pax.aslr.compat.status", &pax_aslr_compat_status);
 TUNABLE_INT("security.pax.aslr.compat.mmap", &pax_aslr_compat_mmap_len);
 TUNABLE_INT("security.pax.aslr.compat.stack", &pax_aslr_compat_stack_len);
 TUNABLE_INT("security.pax.aslr.compat.stack", &pax_aslr_compat_exec_len);
+#endif
+#ifdef MAP_32BIT
+TUNABLE_INT("security.pax.aslr.allow_MAP_32BIT", &pax_aslr_allow_map_32bit);
 #endif
 
 static uint32_t pax_get_status(struct proc *proc, struct prison **pr);
@@ -695,12 +702,16 @@ pax_aslr_mmap(struct proc *p, vm_offset_t *addr, vm_offset_t orig_addr, int flag
 		    __func__, (void *)*addr, (void *)orig_addr, flags);
 
 		*addr += p->p_vmspace->vm_aslr_delta_mmap;
+#ifdef MAP_32BIT
 		if ((flags & MAP_32BIT) == MAP_32BIT) {
-			CTR1(KTR_PAX,
-			    "%s: MAP_32BIT, truncate the address", __func__);
-			/* Ugly hack for adding ASLR to 32bit mappings */
-			*addr = trunc_page(*addr & 0x0fffffff);
+			if (pax_aslr_allow_map_32bit != 0) {
+				CTR1(KTR_PAX,
+				    "%s: MAP_32BIT, truncate the address", __func__);
+				/* Ugly hack for adding ASLR to 32bit mappings */
+				*addr = trunc_page(*addr & 0x0fffffff);
+			}
 		}
+#endif
 		CTR2(KTR_PAX, "%s: result %p\n", __func__, (void *)*addr);
 	} else
 		CTR4(KTR_PAX, "%s: not applying to %p orig_addr=%p flags=%x\n",
