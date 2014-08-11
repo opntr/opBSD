@@ -695,6 +695,12 @@ pax_aslr_mmap(struct proc *p, vm_offset_t *addr, vm_offset_t orig_addr, int flag
 		    __func__, (void *)*addr, (void *)orig_addr, flags);
 
 		*addr += p->p_vmspace->vm_aslr_delta_mmap;
+		if ((flags & MAP_32BIT) == MAP_32BIT) {
+			CTR1(KTR_PAX,
+			    "%s: MAP_32BIT, truncate the address", __func__);
+			/* Ugly hack for adding ASLR to 32bit mappings */
+			*addr = trunc_page(*addr & 0x0fffffff);
+		}
 		CTR2(KTR_PAX, "%s: result %p\n", __func__, (void *)*addr);
 	} else
 		CTR4(KTR_PAX, "%s: not applying to %p orig_addr=%p flags=%x\n",
