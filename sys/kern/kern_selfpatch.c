@@ -26,7 +26,7 @@
  * $FreeBSD$
  */
 
-//#include "opt_selfpatch.h"
+#include "opt_selfpatch.h"
 
 #include <sys/cdefs.h>
 
@@ -53,6 +53,10 @@
 		printf("%s: ", __func__);		\
 		printf(__VA_ARGS__);			\
 	}
+
+#ifdef KSP_WxorX_KERNEL
+#undef KSP_WxorX_KERNEL
+#endif /* KSP_WxorX_KERNEL */
 
 extern struct lf_selfpatch __start_set_selfpatch_set[];
 extern struct lf_selfpatch __stop_set_selfpatch_set[];
@@ -205,7 +209,14 @@ lf_open_kernel_text(struct lf_selfpatch *p)
 	 * dummy function, currently unused becasue the kernel
 	 * protection is RWX
 	 */
-#if 0
+#ifdef KSP_WxorX_KERNEL
+	vm_offset_t eva, sva;
+
+	eva = (vm_offset_t)(p->patchable);
+	sva = (vm_offset_t)(p->patchable + p->patchable_size);
+
+	DBG("kernel: %p - %p RX -> RWX"
+	    (void *)sva, (void *)eva);
 	pmap_protect(kernel_pmap, sva, eva,
 	    VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
 #endif
@@ -220,7 +231,14 @@ lf_close_kernel_text(struct lf_selfpatch *p)
 	 *
 	 * currently flushes the cache after modification
 	 */
-#if 0
+#ifdef KSP_WxorX_KERNEL
+	vm_offset_t eva, sva;
+
+	eva = (vm_offset_t)(p->patchable);
+	sva = (vm_offset_t)(p->patchable + p->patchable_size);
+	DBG("kernel: %p - %p RWX -> RX",
+	    (void *)sva, (void *)eva);
+
 	pmap_protect(kernel_pmap, sva, eva,
 	    VM_PROT_READ | VM_PROT_EXECUTE);
 #endif
@@ -228,6 +246,8 @@ lf_close_kernel_text(struct lf_selfpatch *p)
 	/* Flushes caches and TLBs. */
 	wbinvd();
 	invltlb();
+
+	DBG("caches flushed.");
 }
 
 static void
@@ -237,7 +257,14 @@ lf_open_module_text(struct lf_selfpatch *p)
 	 * dummy function, currently unused becasue the kernel
 	 * protection is RWX
 	 */
-#if 0
+#ifdef KSP_WxorX_KERNEL
+	vm_offset_t eva, sva;
+
+	eva = (vm_offset_t)(p->patchable);
+	sva = (vm_offset_t)(p->patchable + p->patchable_size);
+	DBG("module: %p - %p RX -> RWX",
+	    (void *)sva, (void *)eva);
+
 	pmap_protect(module_pmap, sva, eva,
 	    VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
 #endif
@@ -252,7 +279,14 @@ lf_close_module_text(struct lf_selfpatch *p)
 	 *
 	 * currently flushes the cache after modification
 	 */
-#if 0
+#ifdef KSP_WxorX_KERNEL
+	vm_offset_t eva, sva;
+
+	eva = (vm_offset_t)(p->patchable);
+	sva = (vm_offset_t)(p->patchable + p->patchable_size);
+	DBG("module: %p - %p RWX -> RX",
+	    (void *)sva, (void *)eva);
+
 	pmap_protect(module_pmap, sva, eva,
 	    VM_PROT_READ | VM_PROT_EXECUTE);
 #endif
