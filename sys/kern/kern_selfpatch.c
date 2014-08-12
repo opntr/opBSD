@@ -65,6 +65,11 @@ SYSCTL_INT(_debug, OID_AUTO, selfpatch_debug, CTLFLAG_RWTUN,
 __noinline void lf_selfpatch_selftest(void);
 #endif
 
+static void lf_open_kernel_text(struct lf_selfpatch *p);
+static void lf_close_kernel_text(struct lf_selfpatch *p);
+static void lf_open_module_text(struct lf_selfpatch *p);
+static void lf_close_module_text(struct lf_selfpatch *p);
+
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 {
@@ -127,15 +132,9 @@ lf_selfpatch(linker_file_t lf, int mod)
 
 	for (patch = start; patch != stop; patch++) {
 		DBG("apply: %p\n", patch);
-		if (mod == KSP_MODULE) {
-			ret = lf_selfpatch_apply_module(lf, patch);
-			if (ret != 0)
-				return (ret);
-		} else {
-			ret = lf_selfpatch_apply(lf, patch);
-			if (ret != 0)
-				return (ret);
-		}
+		ret = lf_selfpatch_apply(lf, patch, mod);
+		if (ret != 0)
+			return (ret);
 	}
 
 #ifdef KSP_DEBUG
@@ -149,11 +148,8 @@ lf_selfpatch(linker_file_t lf, int mod)
 }
 
 int
-lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
+lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p, int mod)
 {
-	vm_paddr_t pages[4];
-	vm_offset_t page_offset;
-	int i, page_number;
 
 	/* Refuse to patch if securelevel raised */
 	if (prison0.pr_securelevel > 0)
@@ -176,77 +172,94 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p)
 	if (p->patch_size != p->patchable_size)
 		panic("%s: patch_size != patchable_size", __func__);
 
-	page_offset = (vm_offset_t)p->patchable & (vm_offset_t)PAGE_MASK;
-	page_number = (p->patchable_size >> PAGE_SHIFT) +
-	    ((page_offset + p->patchable_size) > PAGE_SIZE ? 2 : 1);
+	/*
+	 * open the kernel text
+	 * currently this is a dummy function, because the kernel protection
+	 * is RWX now.
+	 */
+	if (mod == KSP_MODULE)
+		lf_open_module_text(p);
+	else
+		lf_open_kernel_text(p);
 
-	DBG("page_number: %d\n", page_number);
-
-	KASSERT(page_number < 4,
-	    ("patch size longer than 3 page does not supported yet\n"));
-
-	DBG("change mapping attribute from RX to RWX:\n");
-	for (i=0; i<page_number; i++) {
-		vm_paddr_t kva;
-
-		kva = trunc_page(p->patchable) + i * PAGE_SIZE;
-		pages[i] = pmap_kextract(kva);
-
-		DBG("kva: %p page: %p\n", (void *)kva, (void *)pages[i]);
-#ifdef NOT_THE_RIGHT_API
-		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
-#endif
-	}
-	DBG("done.\n");
-
+	/*
+	 * replace the instructions
+	 */
 	memcpy(p->patchable, p->patch, p->patchable_size);
 
+	if (mod == KSP_MODULE)
+		lf_close_module_text(p);
+	else
+		lf_close_kernel_text(p);
+
+
 	DBG("patched.\n");
-
-	DBG("change mapping attribute from RWX to RX:\n");
-	for (i=0; i<page_number; i++) {
-		vm_paddr_t kva;
-
-		kva = trunc_page(p->patchable) + i * PAGE_SIZE;
-#ifdef NOT_THE_RIGHT_API
-		pmap_kenter_attr(kva, pages[i], VM_PROT_READ | VM_PROT_EXECUTE);
-#endif
-	}
-	DBG("done.\n");
 
 	return (0);
 }
 
-int
-lf_selfpatch_apply_module(linker_file_t lf, struct lf_selfpatch *p)
+static void
+lf_open_kernel_text(struct lf_selfpatch *p)
 {
+	/*
+	 * dummy function, currently unused becasue the kernel
+	 * protection is RWX
+	 */
+#if 0
+	pmap_protect(kernel_pmap, sva, eva,
+	    VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
+#endif
+}
 
-	/* Refuse to patch if securelevel raised */
-	if (prison0.pr_securelevel > 0)
-		return (EPERM);
+static void
+lf_close_kernel_text(struct lf_selfpatch *p)
+{
+	/*
+	 * dummy function, currently unused becasue the kernel
+	 * protection is RWX
+	 *
+	 * currently flushes the cache after modification
+	 */
+#if 0
+	pmap_protect(kernel_pmap, sva, eva,
+	    VM_PROT_READ | VM_PROT_EXECUTE);
+#endif
 
-	DBG("patchable: %p\n", p->patchable);
-	DBG("patch: %p\n", p->patch);
-	DBG("feature selector: %d\n", p->feature_selector);
-	DBG("feature: %d\n", p->feature);
-	DBG("patchable size: %d\n", p->patchable_size);
-	DBG("patch size: %d\n", p->patch_size);
-	DBG("comment: %s\n", p->comment);
+	/* Flushes caches and TLBs. */
+	wbinvd();
+	invltlb();
+}
 
-	if (!lf_selfpatch_patch_needed(p)) {
-		DBG("not needed.\n");
+static void
+lf_open_module_text(struct lf_selfpatch *p)
+{
+	/*
+	 * dummy function, currently unused becasue the kernel
+	 * protection is RWX
+	 */
+#if 0
+	pmap_protect(module_pmap, sva, eva,
+	    VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
+#endif
+}
 
-		return (0);
-	}
+static void
+lf_close_module_text(struct lf_selfpatch *p)
+{
+	/*
+	 * dummy function, currently unused becasue the kernel
+	 * protection is RWX
+	 *
+	 * currently flushes the cache after modification
+	 */
+#if 0
+	pmap_protect(module_pmap, sva, eva,
+	    VM_PROT_READ | VM_PROT_EXECUTE);
+#endif
 
-	if (p->patch_size != p->patchable_size)
-		panic("%s: patch_size != patchable_size", __func__);
-
-	memcpy(p->patchable, p->patch, p->patchable_size);
-
-	DBG("patched.\n");
-
-	return (0);
+	/* Flushes caches and TLBs. */
+	wbinvd();
+	invltlb();
 }
 
 #ifdef KSP_DEBUG
