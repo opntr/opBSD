@@ -40,7 +40,7 @@ struct ksp_selector_entry {
 };
 #define KSP_SELECTOR_END	{KSP_NULL, NULL}
 
-extern struct ksp_selector_entry ksp_selector_table[];
+extern const struct ksp_selector_entry ksp_selector_table[];
 
 #define KSP_FEATURE_SELFTEST	1
 

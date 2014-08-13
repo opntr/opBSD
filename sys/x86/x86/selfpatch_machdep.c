@@ -39,7 +39,7 @@
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
-struct ksp_selector_entry ksp_selector_table[] = {
+const struct ksp_selector_entry ksp_selector_table[] = {
 	/* feature_selector	feature pointer */
 	{KSP_CPUID,		&cpu_feature},
 	{KSP_CPUID2,		&cpu_feature2},
