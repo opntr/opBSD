@@ -73,6 +73,7 @@ static void lf_open_kernel_text(struct lf_selfpatch *p);
 static void lf_close_kernel_text(struct lf_selfpatch *p);
 static void lf_open_module_text(struct lf_selfpatch *p);
 static void lf_close_module_text(struct lf_selfpatch *p);
+static void lf_pad_with_nop(struct lf_selfpatch *p);
 
 bool
 lf_selfpatch_patch_needed(struct lf_selfpatch *p)
@@ -194,12 +195,12 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p, int mod)
 	 * replace the instructions
 	 */
 	memcpy(p->patchable, p->patch, p->patchable_size);
+	lf_pad_with_nop(p);
 
 	if (mod == KSP_MODULE)
 		lf_close_module_text(p);
 	else
 		lf_close_kernel_text(p);
-
 
 	DBG("patched.\n");
 
@@ -300,6 +301,33 @@ lf_close_module_text(struct lf_selfpatch *p)
 	invltlb();
 
 	DBG("caches flushed.\n");
+}
+
+
+static void
+lf_pad_with_nop(struct lf_selfpatch *p)
+{
+	int i, rem;
+	char *patchable;
+
+	if (p->patch_size == p->patchable_size)
+		return;
+
+	if (p->patch_size > p->patchable_size)
+		panic("%s: patch_size > patchable_size", __func__);
+
+	rem = p->patchable_size - p->patch_size;
+	patchable = p->patchable + p->patch_size;
+
+	for (i = rem / KSP_MAX_NOPLEN; i > 0; i -= KSP_MAX_NOPLEN) {
+		memcpy(patchable,
+		    selfpatch_nop_table[KSP_MAX_NOPLEN],
+		    KSP_MAX_NOPLEN);
+		patchable += KSP_MAX_NOPLEN;
+	}
+
+	rem %= KSP_MAX_NOPLEN;
+	memcpy(patchable, selfpatch_nop_table[rem], rem);
 }
 
 #ifdef KSP_DEBUG
