@@ -215,7 +215,7 @@ lf_open_kernel_text(struct lf_selfpatch *p)
 	eva = (vm_offset_t)(p->patchable);
 	sva = (vm_offset_t)(p->patchable + p->patchable_size);
 
-	DBG("kernel: %p - %p RX -> RWX"
+	DBG("kernel: %p - %p RX -> RWX\n"
 	    (void *)sva, (void *)eva);
 	pmap_protect(kernel_pmap, sva, eva,
 	    VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
@@ -236,7 +236,7 @@ lf_close_kernel_text(struct lf_selfpatch *p)
 
 	eva = (vm_offset_t)(p->patchable);
 	sva = (vm_offset_t)(p->patchable + p->patchable_size);
-	DBG("kernel: %p - %p RWX -> RX",
+	DBG("kernel: %p - %p RWX -> RX\n",
 	    (void *)sva, (void *)eva);
 
 	pmap_protect(kernel_pmap, sva, eva,
@@ -247,7 +247,7 @@ lf_close_kernel_text(struct lf_selfpatch *p)
 	wbinvd();
 	invltlb();
 
-	DBG("caches flushed.");
+	DBG("caches flushed.\n");
 }
 
 static void
@@ -262,7 +262,7 @@ lf_open_module_text(struct lf_selfpatch *p)
 
 	eva = (vm_offset_t)(p->patchable);
 	sva = (vm_offset_t)(p->patchable + p->patchable_size);
-	DBG("module: %p - %p RX -> RWX",
+	DBG("module: %p - %p RX -> RWX\n",
 	    (void *)sva, (void *)eva);
 
 	pmap_protect(module_pmap, sva, eva,
@@ -284,7 +284,7 @@ lf_close_module_text(struct lf_selfpatch *p)
 
 	eva = (vm_offset_t)(p->patchable);
 	sva = (vm_offset_t)(p->patchable + p->patchable_size);
-	DBG("module: %p - %p RWX -> RX",
+	DBG("module: %p - %p RWX -> RX\n",
 	    (void *)sva, (void *)eva);
 
 	pmap_protect(module_pmap, sva, eva,
@@ -294,6 +294,8 @@ lf_close_module_text(struct lf_selfpatch *p)
 	/* Flushes caches and TLBs. */
 	wbinvd();
 	invltlb();
+
+	DBG("caches flushed.\n");
 }
 
 #ifdef KSP_DEBUG
