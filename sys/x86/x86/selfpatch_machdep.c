@@ -53,3 +53,51 @@ const struct ksp_selector_entry ksp_selector_table[] = {
 	KSP_SELECTOR_END
 };
 
+/*
+ * assembly NOP store
+ */
+extern const char       nop1;
+extern const char       nop2;
+extern const char       nop3;
+extern const char       nop4;
+extern const char       nop5;
+extern const char       nop6;
+extern const char       nop7;
+extern const char       nop8;
+extern const char       nop9;
+
+const char *selfpatch_nop_table[] = {
+	[0] = (const char *)NULL,
+	[1] = (const char *)&nop1,
+	[2] = (const char *)&nop2,
+	[3] = (const char *)&nop3,
+	[4] = (const char *)&nop4,
+	[5] = (const char *)&nop5,
+	[6] = (const char *)&nop6,
+	[7] = (const char *)&nop7,
+	[8] = (const char *)&nop8,
+	[9] = (const char *)&nop9
+};
+
+__asm(
+"nop1:                          \n"
+"      " KSP_INSTR_NOP1_C "	\n"
+"nop2:                          \n"
+"      " KSP_INSTR_NOP2_C "	\n"
+"nop3:                          \n"
+"      " KSP_INSTR_NOP3_C "	\n"
+"nop4:                          \n"
+"      " KSP_INSTR_NOP4_C "	\n"
+"nop5:                          \n"
+"      " KSP_INSTR_NOP5_C "	\n"
+"nop6:                          \n"
+"      " KSP_INSTR_NOP6_C "	\n"
+"nop7:                          \n"
+"      " KSP_INSTR_NOP7_C "	\n"
+"nop8:                          \n"
+"      " KSP_INSTR_NOP8_C "	\n"
+"nop9:                          \n"
+"      " KSP_INSTR_NOP9_C "	\n"
+"	.p2align 4,0x90		\n"
+);
+
