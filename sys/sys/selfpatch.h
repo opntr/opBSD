@@ -60,7 +60,7 @@ typedef struct lf_selfpatch {
 	char	*comment;
 } lf_selfpatch_t;
 
-extern char *selfpatch_nop_table[];
+extern const char *selfpatch_nop_table[];
 
 int lf_selfpatch(linker_file_t lf, int mod);
 int lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *patch, int mod);
