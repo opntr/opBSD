@@ -31,8 +31,6 @@
 
 struct lf_selfpatch;
 
-extern char *md_selfpatch_nop_table[];
-
 bool lf_selfpatch_patch_needed(struct lf_selfpatch *p);
 
 #endif /* __X86_SELFPATH_MACHDEP_H__ */
