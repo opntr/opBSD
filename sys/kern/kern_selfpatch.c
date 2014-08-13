@@ -86,7 +86,7 @@ lf_selfpatch_patch_needed(struct lf_selfpatch *p)
 	}
 
 	matched = NULL;
-	for (e = ksp_selector_table;
+	for (e = __DECONST(struct ksp_selector_entry *, ksp_selector_table);
 	    (e->feature_selector != KSP_NULL) && (e->featurep != NULL);
 	    e++) {
 		if (e->feature_selector == p->feature_selector) {
