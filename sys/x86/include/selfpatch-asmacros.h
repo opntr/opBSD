@@ -30,6 +30,8 @@
 #ifndef	__X86_SELFPATCH_ASMACROS_H__
 #define	__X86_SELFPATCH_ASMACROS_H__
 
+#include "opt_cpu.h"
+
 #define KSP_CPUID		1
 #define KSP_CPUID2		2
 #define KSP_AMDID		3
@@ -130,10 +132,15 @@
 			.quad	0 ; 					\
 		.popsection ;
 
+#ifdef INTEL_SMAP_SUPPORT
 #ifndef	_clac
 #define _clac	KSP_INSTR_NOP3_CLAC
 #endif
-
+#else
+#ifndef _clac
+#define _clac
+#endif
+#endif
 
 #define KSP_INSTR_NOP3_STAC						\
 	0723: 								\
@@ -154,8 +161,14 @@
 			.quad	0 ; 					\
 		.popsection ;
 
+#ifdef INTEL_SMAP_SUPPORT
 #ifndef _stac
 #define _stac	KSP_INSTR_NOP3_STAC
+#endif
+#else
+#ifndef _stac
+#define _stac
+#endif
 #endif
 
 #endif /* __X86_SELFPATCH_ASMACROS_H__ */

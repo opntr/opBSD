@@ -439,7 +439,7 @@ dev/virtio/random/virtio_random.c	optional	virtio_random
 isa/syscons_isa.c		optional	sc
 isa/vga_isa.c			optional	vga
 kern/kern_clocksource.c		standard
-kern/kern_selfpatch.c		standard
+kern/kern_selfpatch.c		optional	ksp_framework | intel_smap_support
 kern/link_elf_obj.c		standard
 #
 # IA32 binary support
@@ -554,7 +554,7 @@ x86/x86/msi.c			optional	pci
 x86/x86/nexus.c			standard
 x86/x86/tsc.c			standard
 x86/x86/delay.c			standard
-x86/x86/selfpatch_machdep.c	standard
+x86/x86/selfpatch_machdep.c	optional	ksp_framework | intel_smap_support
 x86/xen/hvm.c			optional	xenhvm
 x86/xen/xen_intr.c		optional	xen | xenhvm
 x86/xen/pv.c			optional	xenhvm

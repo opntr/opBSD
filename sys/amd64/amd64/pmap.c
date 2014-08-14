@@ -100,6 +100,7 @@ __FBSDID("$FreeBSD$");
  *	and to when physical maps must be made correct.
  */
 
+#include "opt_cpu.h"
 #include "opt_pmap.h"
 #include "opt_vm.h"
 
@@ -835,12 +836,14 @@ pmap_bootstrap(vm_paddr_t *firstaddr)
 	if (cpu_stdext_feature & CPUID_STDEXT_SMEP)
 		load_cr4(rcr4() | CR4_SMEP);
 
+#ifdef INTEL_SMAP_SUPPORT
 	if (cpu_stdext_feature & CPUID_STDEXT_SMAP) {
 		printf("Intel SMAP: enabled\n");
 		load_cr4(rcr4() | CR4_SMAP);
 	} else {
 		printf("Intel SMAP: not supported or disabled\n");
 	}
+#endif
 
 	/*
 	 * Initialize the kernel pmap (which is statically allocated).
