@@ -930,4 +930,5 @@ RANDOM_DEBUG	opt_random.h
 RANDOM_RWFILE	opt_random.h
 
 # kernel selfpatch
+KSP_FRAMEWORK	opt_selfpatch.h
 KSP_DEBUG	opt_selfpatch.h
