@@ -698,6 +698,7 @@ trap_pfault(frame, usermode)
 
 		map = &vm->vm_map;
 
+#ifdef INTEL_SMAP_SUPPORT
 		/*
 		 * If CPL < 3, SMAP protections are disabled if EFLAGS.AC = 1.
 		 * If CPL = 3, SMAP applies to all supervisor-mode data accesses
@@ -709,6 +710,7 @@ trap_pfault(frame, usermode)
 			trap_fatal(frame, eva);
 			return(-1);
 		}
+#endif
 
 		/*
 		 * When accessing a usermode address, kernel must be
@@ -881,7 +883,7 @@ trap_fatal(frame, eva)
 		panic("unknown/reserved trap");
 }
 
-
+#ifdef INTEL_SMAP_SUPPORT
 /*
  * Supervisor Mode Access Prevention violation
  *
@@ -906,6 +908,7 @@ smap_access_violation(struct trapframe *frame, int usermode)
 	 */
 	return (true);
 }
+#endif
 
 /*
  * Double fault handler. Called when a fault occurs while writing
