@@ -134,12 +134,16 @@ lf_selfpatch(linker_file_t lf, int mod)
 	count = stop - start;
 	DBG("count: %d\n", count);
 
+	critical_enter();
+
 	for (patch = start; patch != stop; patch++) {
 		DBG("apply: %p\n", patch);
 		ret = lf_selfpatch_apply(lf, patch, mod);
 		if (ret != 0)
 			return (ret);
 	}
+
+	critical_exit();
 
 #ifdef KSP_DEBUG
 	/*
