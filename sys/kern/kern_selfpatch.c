@@ -319,6 +319,9 @@ lf_pad_with_nop(struct lf_selfpatch *p)
 	rem = p->patchable_size - p->patch_size;
 	patchable = p->patchable + p->patch_size;
 
+	DBG("rem: %d\n", rem);
+	DBG("nop9: %d\n", rem / KSP_MAX_NOPLEN);
+
 	for (i = rem / KSP_MAX_NOPLEN; i > 0; i -= KSP_MAX_NOPLEN) {
 		memcpy(patchable,
 		    selfpatch_nop_table[KSP_MAX_NOPLEN],
@@ -327,6 +330,7 @@ lf_pad_with_nop(struct lf_selfpatch *p)
 	}
 
 	rem %= KSP_MAX_NOPLEN;
+	DBG("rem: %d -> nop%d\n", rem, rem);
 	memcpy(patchable, selfpatch_nop_table[rem], rem);
 }
 
