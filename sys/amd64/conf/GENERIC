@@ -89,6 +89,9 @@ options 	MALLOC_DEBUG_MAXZONES=8	# Separate malloc(9) zones
 # Make an SMP-capable kernel by default
 options 	SMP			# Symmetric MultiProcessor Kernel
 
+# Intel Supervisor Mode Access Prevention
+options 	INTEL_SMAP_SUPPORT
+
 # CPU frequency control
 device		cpufreq
 
