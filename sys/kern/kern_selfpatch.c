@@ -61,7 +61,7 @@
 extern struct lf_selfpatch __start_set_selfpatch_set[];
 extern struct lf_selfpatch __stop_set_selfpatch_set[];
 
-static int selfpatch_debug=1;
+static int selfpatch_debug = 0;
 SYSCTL_INT(_debug, OID_AUTO, selfpatch_debug, CTLFLAG_RWTUN,
     &selfpatch_debug, 0, "Set various levels of selfpatch debug");
 
