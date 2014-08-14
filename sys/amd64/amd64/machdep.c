@@ -53,6 +53,7 @@ __FBSDID("$FreeBSD$");
 #include "opt_perfmon.h"
 #include "opt_platform.h"
 #include "opt_sched.h"
+#include "opt_selfpatch.h"
 
 #include <sys/param.h>
 #include <sys/proc.h>
@@ -1999,8 +2000,10 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	initializecpu();	/* Initialize CPU registers */
 	initializecpucache();
 
+#if defined(KSP_FRAMEWORK) || defined(INTEL_SMAP_SUPPORT)
 	/* selfmodify kernel text, when needed */
 	lf_selfpatch(linker_kernel_file, 0);
+#endif
 
 	/* doublefault stack space, runs on ist1 */
 	common_tss[0].tss_ist1 = (long)&dblfault_stack[sizeof(dblfault_stack)];

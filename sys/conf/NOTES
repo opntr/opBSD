@@ -2986,3 +2986,7 @@ options 	RANDOM_RWFILE	# Read and write entropy cache
 
 # Module to enable execution of application via emulators like QEMU
 options         IMAGACT_BINMISC
+
+# Kernel selfpatch framework
+options 	KSP_FRAMEWORK
+options 	KSP_DEBUG

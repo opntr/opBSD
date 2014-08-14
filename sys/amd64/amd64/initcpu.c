@@ -176,8 +176,10 @@ initializecpu(void)
 	 */
 	if (!IS_BSP() && (cpu_stdext_feature & CPUID_STDEXT_SMEP))
 		cr4 |= CR4_SMEP;
+#ifdef INTEL_SMAP_SUPPORT
 	if (!IS_BSP() && (cpu_stdext_feature & CPUID_STDEXT_SMAP))
 		cr4 |= CR4_SMAP;
+#endif
 	load_cr4(cr4);
 	if ((amd_feature & AMDID_NX) != 0) {
 		msr = rdmsr(MSR_EFER) | EFER_NXE;
