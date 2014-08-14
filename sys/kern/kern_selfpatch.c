@@ -178,8 +178,8 @@ lf_selfpatch_apply(linker_file_t lf, struct lf_selfpatch *p, int mod)
 		return (0);
 	}
 
-	if (p->patch_size != p->patchable_size)
-		panic("%s: patch_size != patchable_size", __func__);
+	if (p->patch_size > p->patchable_size)
+		panic("%s: patch_size > patchable_size", __func__);
 
 	/*
 	 * open the kernel text
