@@ -26,6 +26,7 @@ makeoptions	WITH_CTF=1		# Run ctfconvert(1) for DTrace support
 
 options 	SCHED_ULE		# ULE scheduler
 options 	PREEMPTION		# Enable kernel thread preemption
+options 	KSP_FRAMEWORK		# Kernel run-time selfpatches and updates
 options 	INET			# InterNETworking
 options 	INET6			# IPv6 communications protocols
 options 	TCP_OFFLOAD		# TCP offload
