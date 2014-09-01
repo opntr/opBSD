@@ -707,6 +707,8 @@ dev/ath/if_ath_ahb.c		optional ath_ahb \
 #
 dev/ath/if_ath.c		optional ath \
 	compile-with "${NORMAL_C} -I$S/dev/ath"
+dev/ath/if_ath_alq.c		optional ath \
+	compile-with "${NORMAL_C} -I$S/dev/ath"
 dev/ath/if_ath_beacon.c		optional ath \
 	compile-with "${NORMAL_C} -I$S/dev/ath"
 dev/ath/if_ath_btcoex.c		optional ath \
@@ -1422,22 +1424,26 @@ dev/hptiop/hptiop.c		optional hptiop scbus
 dev/hwpmc/hwpmc_logging.c	optional hwpmc
 dev/hwpmc/hwpmc_mod.c		optional hwpmc
 dev/hwpmc/hwpmc_soft.c		optional hwpmc
-dev/i40e/if_i40e.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
-dev/i40e/i40e_txrx.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
-dev/i40e/i40e_osdep.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
-dev/i40e/i40e_nvm.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
-dev/i40e/i40e_lan_hmc.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
-dev/i40e/i40e_hmc.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
-dev/i40e/i40e_common.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
-dev/i40e/i40e_adminq.c		optional i40e inet \
-	compile-with "${NORMAL_C} -I$S/dev/i40e -DSMP"
+dev/ixl/if_ixl.c		optional ixl inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/if_ixlv.c		optional ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/ixlvc.c			optional ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/ixl_txrx.c		optional ixl ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/i40e_osdep.c		optional ixl ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/i40e_lan_hmc.c		optional ixl ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/i40e_hmc.c		optional ixl ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/i40e_common.c		optional ixl ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/i40e_nvm.c		optional ixl ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
+dev/ixl/i40e_adminq.c		optional ixl ixlv inet \
+	compile-with "${NORMAL_C} -I$S/dev/ixl"
 dev/ichsmb/ichsmb.c		optional ichsmb
 dev/ichsmb/ichsmb_pci.c		optional ichsmb pci
 dev/ida/ida.c			optional ida
@@ -1946,6 +1952,7 @@ dev/netmap/netmap_freebsd.c	optional netmap
 dev/netmap/netmap_generic.c	optional netmap
 dev/netmap/netmap_mbq.c		optional netmap
 dev/netmap/netmap_mem2.c	optional netmap
+dev/netmap/netmap_monitor.c	optional netmap
 dev/netmap/netmap_offloadings.c	optional netmap
 dev/netmap/netmap_pipe.c	optional netmap
 dev/netmap/netmap_vale.c	optional netmap
@@ -2624,6 +2631,9 @@ dev/xen/timer/timer.c		optional xen | xenhvm
 dev/xen/pvcpu/pvcpu.c		optional xen | xenhvm
 dev/xl/if_xl.c			optional xl pci
 dev/xl/xlphy.c			optional xl pci
+fs/autofs/autofs.c		optional autofs
+fs/autofs/autofs_vfsops.c	optional autofs
+fs/autofs/autofs_vnops.c	optional autofs
 fs/deadfs/dead_vnops.c		standard
 fs/devfs/devfs_devs.c		standard
 fs/devfs/devfs_dir.c		standard
@@ -3161,6 +3171,7 @@ libkern/strcmp.c		standard
 libkern/strcpy.c		standard
 libkern/strcspn.c		standard
 libkern/strdup.c		standard
+libkern/strndup.c		standard
 libkern/strlcat.c		standard
 libkern/strlcpy.c		standard
 libkern/strlen.c		standard
