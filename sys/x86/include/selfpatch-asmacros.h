@@ -30,10 +30,6 @@
 #ifndef	__X86_SELFPATCH_ASMACROS_H__
 #define	__X86_SELFPATCH_ASMACROS_H__
 
-#ifdef _KERNEL
-#include "opt_cpu.h"
-#endif
-
 #define KSP_CPUID		1
 #define KSP_CPUID2		2
 #define KSP_AMDID		3

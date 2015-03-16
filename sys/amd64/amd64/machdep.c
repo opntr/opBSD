@@ -53,7 +53,6 @@ __FBSDID("$FreeBSD$");
 #include "opt_perfmon.h"
 #include "opt_platform.h"
 #include "opt_sched.h"
-#include "opt_selfpatch.h"
 
 #include <sys/param.h>
 #include <sys/proc.h>
