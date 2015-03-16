@@ -705,8 +705,7 @@ trap_pfault(frame, usermode)
 		 *  (these are implicit supervisor accesses) regardless of the
 		 *  value of EFLAGS.AC." - Intel Ref. # 319433-014 9.3.2
 		 */
-		if (__predict_false(smap_access_violation(frame, usermode))) {
-			printf("\nSupervisor Mode Access Prevention\n");
+		if (__predict_false(smap_access_violation(frame, usermode) == 1)) {
 			trap_fatal(frame, eva);
 			return(-1);
 		}
@@ -897,16 +896,18 @@ smap_access_violation(struct trapframe *frame, int usermode)
 {
 	/* SMAP disabled */
 	if ((cpu_stdext_feature & CPUID_STDEXT_SMAP) == 0)
-		return (false);
+		return (0);
 
 	/* CPL == 3 or EFLAGS.AC == 1 */
-	if (usermode || (frame->tf_rflags & PSL_AC) != 0)
-		return (false);
+	if (usermode || ((frame->tf_rflags & PSL_AC) == PSL_AC))
+		return (0);
 
 	/*
 	 * CPL < 3 and EFLAGS.AC == 0
+	 * Access violation happen.
 	 */
-	return (true);
+	printf("Supervisor Mode Access Prevention in action...\n");
+	return (1);
 }
 #endif
 
