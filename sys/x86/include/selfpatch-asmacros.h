@@ -30,14 +30,14 @@
 #ifndef	__X86_SELFPATCH_ASMACROS_H__
 #define	__X86_SELFPATCH_ASMACROS_H__
 
-#define KSP_CPUID		1
-#define KSP_CPUID2		2
-#define KSP_AMDID		3
-#define KSP_AMDID2		4
-#define KSP_CPUID_STDEXT	5
-#define KSP_VIA_CPUID		6
-#define KSP_VIA_CRYPT_CWLO	7
-#define KSP_CPUID_EXTSTATE	8
+#define	KSP_CPUID		1
+#define	KSP_CPUID2		2
+#define	KSP_AMDID		3
+#define	KSP_AMDID2		4
+#define	KSP_CPUID_STDEXT	5
+#define	KSP_VIA_CPUID		6
+#define	KSP_VIA_CRYPT_CWLO	7
+#define	KSP_CPUID_EXTSTATE	8
 
 /*
  * Intel Instruction Set Reference M-Z
@@ -88,7 +88,7 @@
 
 #define	KSP_MAX_NOPLEN		9
 
-#define KSP_INSTR_XSAVE_XSAVEOPT(_ARG)					\
+#define	KSP_INSTR_XSAVE_XSAVEOPT(_ARG)					\
 	0723: 								\
 		xsave ( _ARG ) ;					\
 	0724: 								\
@@ -108,10 +108,10 @@
 		.popsection ;
 
 #ifndef _xsave_xsaveopt
-#define _xsave_xsaveopt(_ARG) KSP_INSTR_XSAVE_XSAVEOPT(_ARG)
+#define	_xsave_xsaveopt(_ARG)	KSP_INSTR_XSAVE_XSAVEOPT(_ARG)
 #endif
 
-#define KSP_INSTR_NOP3_CLAC						\
+#define	KSP_INSTR_NOP3_CLAC						\
 	0723: 								\
 		KSP_INSTR_NOP3 ; 					\
 	0724: 								\
@@ -132,15 +132,15 @@
 
 #ifdef INTEL_SMAP_SUPPORT
 #ifndef	_clac
-#define _clac	KSP_INSTR_NOP3_CLAC
+#define	_clac	KSP_INSTR_NOP3_CLAC
 #endif
 #else
 #ifndef _clac
-#define _clac
+#define	_clac
 #endif
 #endif
 
-#define KSP_INSTR_NOP3_STAC						\
+#define	KSP_INSTR_NOP3_STAC						\
 	0723: 								\
 		KSP_INSTR_NOP3 ; 					\
 	0724: 								\
@@ -161,11 +161,11 @@
 
 #ifdef INTEL_SMAP_SUPPORT
 #ifndef _stac
-#define _stac	KSP_INSTR_NOP3_STAC
+#define	_stac	KSP_INSTR_NOP3_STAC
 #endif
 #else
 #ifndef _stac
-#define _stac
+#define	_stac
 #endif
 #endif
 

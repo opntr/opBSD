@@ -46,14 +46,14 @@
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
-#define DBG(...)					\
+#define	DBG(...)					\
 	if (selfpatch_debug) {				\
 		printf("%s: ", __func__);		\
 		printf(__VA_ARGS__);			\
 	}
 
 #ifdef KSP_WxorX_KERNEL
-#undef KSP_WxorX_KERNEL
+#undef	KSP_WxorX_KERNEL
 #endif /* KSP_WxorX_KERNEL */
 
 extern struct lf_selfpatch __start_set_selfpatch_set[];
