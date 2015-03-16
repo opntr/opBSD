@@ -67,4 +67,4 @@ XENHVM			opt_global.h
 ISCI_LOGGING	opt_isci.h
 
 # Intel Supervisor Mode Access Prevention
-INTEL_SMAP_SUPPORT	opt_cpu.h
+INTEL_SMAP_SUPPORT	opt_global.h

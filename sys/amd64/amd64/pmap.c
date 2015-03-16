@@ -100,7 +100,6 @@ __FBSDID("$FreeBSD$");
  *	and to when physical maps must be made correct.
  */
 
-#include "opt_cpu.h"
 #include "opt_pmap.h"
 #include "opt_vm.h"
 

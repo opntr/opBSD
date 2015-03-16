@@ -26,8 +26,6 @@
  * $FreeBSD$
  */
 
-#include "opt_selfpatch.h"
-
 #include <sys/cdefs.h>
 
 #include <sys/param.h>

@@ -27,11 +27,9 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
-#include "opt_cpu.h"
 #include "opt_ddb.h"
 #include "opt_kld.h"
 #include "opt_hwpmc_hooks.h"
-#include "opt_selfpatch.h"
 
 #include <sys/param.h>
 #include <sys/kernel.h>
