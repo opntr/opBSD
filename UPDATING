@@ -16,6 +16,74 @@ from older versions of FreeBSD, try WITHOUT_CLANG to bootstrap to the tip of
 stable/10, and then rebuild without this option. The bootstrap process from
 older version of current is a bit fragile.
 
+20150624:
+	An additional fix for the issue described in the 20150614 sendmail
+	entry below has been been committed in revision 284786.
+
+20150615:
+	The fix for the issue described in the 20150614 sendmail entry
+	below has been been committed in revision 284485.  The work
+	around described in that entry is no longer needed unless the
+	default setting is overridden by a confDH_PARAMETERS configuration
+	setting of '5' or pointing to a 512 bit DH parameter file.
+
+20150614:
+	The import of openssl to address the FreeBSD-SA-15:10.openssl
+	security advisory includes a change which rejects handshakes
+	with DH parameters below 768 bits.  sendmail releases prior
+	to 8.15.2 (not yet released), defaulted to a 512 bit
+	DH parameter setting for client connections.  To work around
+	this interoperability, sendmail can be configured to use a
+	2048 bit DH parameter by:
+
+	1. Edit /etc/mail/`hostname`.mc 
+	2. If a setting for confDH_PARAMETERS does not exist or
+	   exists and is set to a string beginning with '5',
+	   replace it with '2'.
+	3. If a setting for confDH_PARAMETERS exists and is set to
+	   a file path, create a new file with:
+		openssl dhparam -out /path/to/file 2048
+	4. Rebuild the .cf file:
+		cd /etc/mail/; make; make install
+	5. Restart sendmail:
+		cd /etc/mail/; make restart
+
+	A sendmail patch is coming, at which time this file will be
+	updated.
+
+20150601:
+	chmod, chflags, chown and chgrp now affect symlinks in -R mode as
+	defined in symlink(7); previously symlinks were silently ignored.
+
+20150430:
+	The const qualifier has been removed from iconv(3) to comply with
+	POSIX.  The ports tree is aware of this from r384038 onwards.
+
+20141215:
+	At svn r275807, The default linux compat kernel ABI has been adjusted
+	to 2.6.18 in support of the linux-c6 compat ports infrastructure
+	update.  If you wish to continue using the linux-f10 compat ports,
+	add compat.linux.osrelease=2.6.16 to your local sysctl.conf.  Users are
+	encouraged to update their linux-compat packages to linux-c6 during
+	their next update cycle.
+	
+	See ports/UPDATING 20141209 and 20141215 on migration to CentOS 6 ports.
+
+20141205:
+	pjdfstest has been integrated into kyua as an opt-in test suite.
+	Please see share/doc/pjdfstest/README for a more details on how to
+	execute it.
+
+20141118:
+	10.1-RELEASE.
+
+20140904:
+	The ofwfb driver, used to provide a graphics console on PowerPC when
+	using vt(4), no longer allows mmap() of all of physical memory. This
+	will prevent Xorg on PowerPC with some ATI graphics cards from
+	initializing properly unless x11-servers/xorg-server is updated to
+	1.12.4_8 or newer.
+
 20140831:
 	The libatf-c and libatf-c++ major versions were downgraded to 0 and
 	1 respectively to match the upstream numbers.  They were out of
@@ -26,11 +94,16 @@ older version of current is a bit fragile.
 	programs once the operator executes "make delete-old-libs" after a
 	"make installworld".
 
+	Additionally, the atf-sh binary was made private by moving it into
+	/usr/libexec/.  Already-built shell test programs will keep the
+	path to the old binary so they will break after "make delete-old"
+	is run.
+
 	If you are using WITH_TESTS=yes (not the default), wipe the object
 	tree and rebuild from scratch to prevent spurious test failures.
-	This is only needed once: the old, misnumbered libraries have been
-	added to OptionalObsoleteFiles.inc so they will be removed during a
-	clean upgrade.
+	This is only needed once: the misnumbered libraries and misplaced
+	binaries have been added to OptionalObsoleteFiles.inc so they will
+	be removed during a clean upgrade.
 
 20140814:
 	The ixgbe tunables now match their sysctl counterparts, for example:

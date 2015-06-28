@@ -134,7 +134,6 @@ static const int MODPARM_rx_flip = 0;
  * to mirror the Linux MAX_SKB_FRAGS constant.
  */
 #define	MAX_TX_REQ_FRAGS (65536 / PAGE_SIZE + 2)
-#define	NF_TSO_MAXBURST ((IP_MAXPACKET / PAGE_SIZE) * MCLBYTES)
 
 #define RX_COPY_THRESHOLD 256
 
@@ -471,7 +470,7 @@ netfront_attach(device_t dev)
 #if __FreeBSD_version >= 700000
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "enable_lro", CTLTYPE_INT|CTLFLAG_RW,
+	    OID_AUTO, "enable_lro", CTLFLAG_RW,
 	    &xn_enable_lro, 0, "Large Receive Offload");
 #endif
 
@@ -684,7 +683,6 @@ netfront_backend_changed(device_t dev, XenbusState newstate)
 	switch (newstate) {
 	case XenbusStateInitialising:
 	case XenbusStateInitialised:
-	case XenbusStateConnected:
 	case XenbusStateUnknown:
 	case XenbusStateClosed:
 	case XenbusStateReconfigured:
@@ -696,12 +694,14 @@ netfront_backend_changed(device_t dev, XenbusState newstate)
 		if (network_connect(sc) != 0)
 			break;
 		xenbus_set_state(dev, XenbusStateConnected);
-#ifdef INET
-		netfront_send_fake_arp(dev, sc);
-#endif
 		break;
 	case XenbusStateClosing:
 		xenbus_set_state(dev, XenbusStateClosed);
+		break;
+	case XenbusStateConnected:
+#ifdef INET
+		netfront_send_fake_arp(dev, sc);
+#endif
 		break;
 	}
 }
@@ -2102,7 +2102,9 @@ create_netdev(device_t dev)
 	
     	ifp->if_hwassist = XN_CSUM_FEATURES;
     	ifp->if_capabilities = IFCAP_HWCSUM;
-	ifp->if_hw_tsomax = NF_TSO_MAXBURST;
+	ifp->if_hw_tsomax = 65536 - (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN);
+	ifp->if_hw_tsomaxsegcount = MAX_TX_REQ_FRAGS;
+	ifp->if_hw_tsomaxsegsize = PAGE_SIZE;
 	
     	ether_ifattach(ifp, np->mac);
     	callout_init(&np->xn_stat_ch, CALLOUT_MPSAFE);

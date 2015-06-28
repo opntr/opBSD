@@ -442,7 +442,7 @@ get_mcontext(struct thread *td, mcontext_t *mcp, int flags)
 }
 
 int
-set_mcontext(struct thread *td, const mcontext_t *mcp)
+set_mcontext(struct thread *td, mcontext_t *mcp)
 {
 	struct pcb *pcb;
 	struct trapframe *tf;
@@ -739,7 +739,7 @@ get_mcontext32(struct thread *td, mcontext32_t *mcp, int flags)
 }
 
 static int
-set_mcontext32(struct thread *td, const mcontext32_t *mcp)
+set_mcontext32(struct thread *td, mcontext32_t *mcp)
 {
 	mcontext_t mcp64;
 	int i, error;
@@ -752,6 +752,7 @@ set_mcontext32(struct thread *td, const mcontext32_t *mcp)
 	memcpy(mcp64.mc_av,mcp->mc_av,sizeof(mcp64.mc_av));
 	for (i = 0; i < 42; i++)
 		mcp64.mc_frame[i] = mcp->mc_frame[i];
+	mcp64.mc_srr1 |= (td->td_frame->srr1 & 0xFFFFFFFF00000000ULL);
 	memcpy(mcp64.mc_fpreg,mcp->mc_fpreg,sizeof(mcp64.mc_fpreg));
 
 	error = set_mcontext(td, &mcp64);

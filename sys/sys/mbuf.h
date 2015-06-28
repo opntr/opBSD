@@ -206,6 +206,16 @@ struct mbuf {
 #define	m_pktdat	M_dat.MH.MH_dat.MH_databuf
 #define	m_dat		M_dat.M_databuf
 
+/* 
+ * NOTE: forwards compatibility definitions for mbuf(9)
+ *
+ * These aren't 1:1 with the macros in r277203; in particular they're exposed
+ * to both userland and kernel, whereas this is exposed to just _KERNEL -- to
+ * avoid disruption with existing KBI/KPIs
+ */
+#define	MHSIZE		offsetof(struct mbuf, m_dat)
+#define	MPKTHSIZE	offsetof(struct mbuf, m_pktdat)
+
 /*
  * mbuf flags of global significance and layer crossing.
  * Those of only protocol/layer specific significance are to be mapped
@@ -247,7 +257,7 @@ struct mbuf {
  * Flags preserved when copying m_pkthdr.
  */
 #define M_COPYFLAGS \
-    (M_PKTHDR|M_EOR|M_RDONLY|M_BCAST|M_MCAST|M_VLANTAG|M_PROMISC| \
+    (M_PKTHDR|M_EOR|M_RDONLY|M_BCAST|M_MCAST|M_PROMISC|M_VLANTAG|M_FLOWID| \
      M_PROTOFLAGS)
 
 /*
@@ -287,8 +297,17 @@ struct mbuf {
 #define	M_HASHTYPE_OPAQUE		255	/* ordering, not affinity */
 
 #define	M_HASHTYPE_CLEAR(m)	((m)->m_pkthdr.rsstype = 0)
-#define	M_HASHTYPE_GET(m)	((m)->m_pkthdr.rsstype)
-#define	M_HASHTYPE_SET(m, v)	((m)->m_pkthdr.rsstype = (v))
+/*
+ * Handle M_FLOWID for legacy drivers still using them.
+ */
+#define	M_HASHTYPE_GET(m)	(((m->m_flags & M_FLOWID) &&	    \
+    (m)->m_pkthdr.rsstype == M_HASHTYPE_NONE) ? M_HASHTYPE_OPAQUE : \
+    (m)->m_pkthdr.rsstype)
+#define	M_HASHTYPE_SET(m, v)	do {	    \
+	    if ((v) != M_HASHTYPE_NONE)	    \
+		m->m_flags |= M_FLOWID;	    \
+	    (m)->m_pkthdr.rsstype = (v);    \
+} while (0)
 #define	M_HASHTYPE_TEST(m, v)	(M_HASHTYPE_GET(m) == (v))
 
 /*
@@ -564,6 +583,7 @@ m_extaddref(struct mbuf *m, caddr_t buf, u_int size, u_int *ref_cnt,
 	m->m_ext.ext_arg1 = arg1;
 	m->m_ext.ext_arg2 = arg2;
 	m->m_ext.ext_type = EXT_EXTREF;
+	m->m_ext.ext_flags = 0;
 }
 
 static __inline uma_zone_t

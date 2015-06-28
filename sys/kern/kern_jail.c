@@ -33,6 +33,7 @@ __FBSDID("$FreeBSD$");
 #include "opt_ddb.h"
 #include "opt_inet.h"
 #include "opt_inet6.h"
+#include "opt_pax.h"
 
 #include <sys/param.h>
 #include <sys/types.h>
@@ -49,6 +50,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/jail.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/pax.h>
 #include <sys/racct.h>
 #include <sys/refcount.h>
 #include <sys/sx.h>
@@ -208,6 +210,7 @@ static char *pr_allow_names[] = {
 	"allow.mount.zfs",
 	"allow.mount.procfs",
 	"allow.mount.tmpfs",
+	"allow.mount.fdescfs",
 };
 const size_t pr_allow_names_size = sizeof(pr_allow_names);
 
@@ -224,6 +227,7 @@ static char *pr_allow_nonames[] = {
 	"allow.mount.nozfs",
 	"allow.mount.noprocfs",
 	"allow.mount.notmpfs",
+	"allow.mount.nofdescfs",
 };
 const size_t pr_allow_nonames_size = sizeof(pr_allow_nonames);
 
@@ -236,6 +240,23 @@ static int jail_default_devfs_rsnum = JAIL_DEFAULT_DEVFS_RSNUM;
 #if defined(INET) || defined(INET6)
 static unsigned jail_max_af_ips = 255;
 #endif
+
+/*
+ * Initialize the parts of prison0 that can't be static-initialized with
+ * constants.  This is called from proc0_init() after creating thread0 cpuset.
+ */
+void
+prison0_init(void)
+{
+
+	prison0.pr_cpuset = cpuset_ref(thread0.td_cpuset);
+	prison0.pr_osreldate = osreldate;
+	strlcpy(prison0.pr_osrelease, osrelease, sizeof(prison0.pr_osrelease));
+
+#ifdef PAX
+	pax_init_prison(&prison0);
+#endif
+}
 
 #ifdef INET
 static int
@@ -536,7 +557,7 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 	struct prison *pr, *deadpr, *mypr, *ppr, *tpr;
 	struct vnode *root;
 	char *domain, *errmsg, *host, *name, *namelc, *p, *path, *uuid;
-	char *g_path;
+	char *g_path, *osrelstr;
 #if defined(INET) || defined(INET6)
 	struct prison *tppr;
 	void *op;
@@ -546,7 +567,7 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 	int created, cuflags, descend, enforce, error, errmsg_len, errmsg_pos;
 	int gotchildmax, gotenforce, gothid, gotrsnum, gotslevel;
 	int fi, jid, jsys, len, level;
-	int childmax, rsnum, slevel;
+	int childmax, osreldt, rsnum, slevel;
 	int fullpath_disabled;
 #if defined(INET) || defined(INET6)
 	int ii, ij;
@@ -800,7 +821,7 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 #ifdef INET
 	error = vfs_getopt(opts, "ip4.addr", &op, &ip4s);
 	if (error == ENOENT)
-		ip4s = (pr_flags & PR_IP4_DISABLE) ? 0 : -1;
+		ip4s = 0;
 	else if (error != 0)
 		goto done_free;
 	else if (ip4s & (sizeof(*ip4) - 1)) {
@@ -858,7 +879,7 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 #ifdef INET6
 	error = vfs_getopt(opts, "ip6.addr", &op, &ip6s);
 	if (error == ENOENT)
-		ip6s = (pr_flags & PR_IP6_DISABLE) ? 0 : -1;
+		ip6s = 0;
 	else if (error != 0)
 		goto done_free;
 	else if (ip6s & (sizeof(*ip6) - 1)) {
@@ -958,6 +979,46 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 				error = ENAMETOOLONG;
 				goto done_free;
 			}
+		}
+	}
+
+	error = vfs_getopt(opts, "osrelease", (void **)&osrelstr, &len);
+	if (error == ENOENT)
+		osrelstr = NULL;
+	else if (error != 0)
+		goto done_free;
+	else {
+		if (flags & JAIL_UPDATE) {
+			error = EINVAL;
+			vfs_opterror(opts,
+			    "osrelease cannot be changed after creation");
+			goto done_errmsg;
+		}
+		if (len == 0 || len >= OSRELEASELEN) {
+			error = EINVAL;
+			vfs_opterror(opts,
+			    "osrelease string must be 1-%d bytes long",
+			    OSRELEASELEN - 1);
+			goto done_errmsg;
+		}
+	}
+
+	error = vfs_copyopt(opts, "osreldate", &osreldt, sizeof(osreldt));
+	if (error == ENOENT)
+		osreldt = 0;
+	else if (error != 0)
+		goto done_free;
+	else {
+		if (flags & JAIL_UPDATE) {
+			error = EINVAL;
+			vfs_opterror(opts,
+			    "osreldate cannot be changed after creation");
+			goto done_errmsg;
+		}
+		if (osreldt == 0) {
+			error = EINVAL;
+			vfs_opterror(opts, "osreldate cannot be 0");
+			goto done_errmsg;
 		}
 	}
 
@@ -1289,6 +1350,12 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 		pr->pr_enforce_statfs = JAIL_DEFAULT_ENFORCE_STATFS;
 		pr->pr_devfs_rsnum = ppr->pr_devfs_rsnum;
 
+		pr->pr_osreldate = osreldt ? osreldt : ppr->pr_osreldate;
+		if (osrelstr == NULL)
+		    strcpy(pr->pr_osrelease, ppr->pr_osrelease);
+		else
+		    strcpy(pr->pr_osrelease, osrelstr);
+
 		LIST_INIT(&pr->pr_children);
 		mtx_init(&pr->pr_mtx, "jail mutex", NULL, MTX_DEF | MTX_DUPOK);
 
@@ -1306,6 +1373,10 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 			prison_deref(pr, PD_LIST_XLOCKED);
 			goto done_releroot;
 		}
+
+#ifdef PAX
+		pax_init_prison(pr);
+#endif
 
 		mtx_lock(&pr->pr_mtx);
 		/*
@@ -1727,7 +1798,7 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 	mtx_unlock(&pr->pr_mtx);
 
 #ifdef RACCT
-	if (created)
+	if (racct_enable && created)
 		prison_racct_attach(pr);
 #endif
 
@@ -1811,10 +1882,12 @@ kern_jail_set(struct thread *td, struct uio *optuio, int flags)
 	}
 
 #ifdef RACCT
-	if (!created) {
-		sx_sunlock(&allprison_lock);
+	if (racct_enable && !created) {
+		if (!(flags & JAIL_ATTACH))
+			sx_sunlock(&allprison_lock);
 		prison_racct_modify(pr);
-		sx_slock(&allprison_lock);
+		if (!(flags & JAIL_ATTACH))
+			sx_slock(&allprison_lock);
 	}
 #endif
 
@@ -2123,6 +2196,13 @@ kern_jail_get(struct thread *td, struct uio *optuio, int flags)
 	error = vfs_setopt(opts, "nodying", &i, sizeof(i));
 	if (error != 0 && error != ENOENT)
 		goto done_deref;
+	error = vfs_setopt(opts, "osreldate", &pr->pr_osreldate,
+	    sizeof(pr->pr_osreldate));
+	if (error != 0 && error != ENOENT)
+		goto done_deref;
+	error = vfs_setopts(opts, "osrelease", pr->pr_osrelease);
+	if (error != 0 && error != ENOENT)
+		goto done_deref;
 
 	/* Get the module parameters. */
 	mtx_unlock(&pr->pr_mtx);
@@ -2252,6 +2332,10 @@ prison_remove_one(struct prison *pr)
 {
 	struct proc *p;
 	int deuref;
+
+#ifdef MAC
+	mac_prison_destroy(pr);
+#endif
 
 	/* If the prison was persistent, it is not anymore. */
 	deuref = 0;
@@ -2592,7 +2676,8 @@ prison_deref(struct prison *pr, int flags)
 			cpuset_rel(pr->pr_cpuset);
 		osd_jail_exit(pr);
 #ifdef RACCT
-		prison_racct_detach(pr);
+		if (racct_enable)
+			prison_racct_detach(pr);
 #endif
 		free(pr, M_PRISON);
 
@@ -4230,6 +4315,10 @@ SYSCTL_PROC(_security_jail, OID_AUTO, mount_devfs_allowed,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
     NULL, PR_ALLOW_MOUNT_DEVFS, sysctl_jail_default_allow, "I",
     "Processes in jail can mount the devfs file system");
+SYSCTL_PROC(_security_jail, OID_AUTO, mount_fdescfs_allowed,
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
+    NULL, PR_ALLOW_MOUNT_FDESCFS, sysctl_jail_default_allow, "I",
+    "Processes in jail can mount the fdescfs file system");
 SYSCTL_PROC(_security_jail, OID_AUTO, mount_nullfs_allowed,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
     NULL, PR_ALLOW_MOUNT_NULLFS, sysctl_jail_default_allow, "I",
@@ -4314,12 +4403,20 @@ sysctl_jail_param(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
+/*
+ * CTLFLAG_RDTUN in the following indicates jail parameters that can be set at
+ * jail creation time but cannot be changed in an existing jail.
+ */
 SYSCTL_JAIL_PARAM(, jid, CTLTYPE_INT | CTLFLAG_RDTUN, "I", "Jail ID");
 SYSCTL_JAIL_PARAM(, parent, CTLTYPE_INT | CTLFLAG_RD, "I", "Jail parent ID");
 SYSCTL_JAIL_PARAM_STRING(, name, CTLFLAG_RW, MAXHOSTNAMELEN, "Jail name");
 SYSCTL_JAIL_PARAM_STRING(, path, CTLFLAG_RDTUN, MAXPATHLEN, "Jail root path");
 SYSCTL_JAIL_PARAM(, securelevel, CTLTYPE_INT | CTLFLAG_RW,
     "I", "Jail secure level");
+SYSCTL_JAIL_PARAM(, osreldate, CTLTYPE_INT | CTLFLAG_RDTUN, "I", 
+    "Jail value for kern.osreldate and uname -K");
+SYSCTL_JAIL_PARAM_STRING(, osrelease, CTLFLAG_RDTUN, OSRELEASELEN, 
+    "Jail value for kern.osrelease and uname -r");
 SYSCTL_JAIL_PARAM(, enforce_statfs, CTLTYPE_INT | CTLFLAG_RW,
     "I", "Jail cannot see all mounted file systems");
 SYSCTL_JAIL_PARAM(, devfs_ruleset, CTLTYPE_INT | CTLFLAG_RW,
@@ -4390,6 +4487,8 @@ SYSCTL_JAIL_PARAM(_allow_mount, , CTLTYPE_INT | CTLFLAG_RW,
     "B", "Jail may mount/unmount jail-friendly file systems in general");
 SYSCTL_JAIL_PARAM(_allow_mount, devfs, CTLTYPE_INT | CTLFLAG_RW,
     "B", "Jail may mount the devfs file system");
+SYSCTL_JAIL_PARAM(_allow_mount, fdescfs, CTLTYPE_INT | CTLFLAG_RW,
+    "B", "Jail may mount the fdescfs file system");
 SYSCTL_JAIL_PARAM(_allow_mount, nullfs, CTLTYPE_INT | CTLFLAG_RW,
     "B", "Jail may mount the nullfs file system");
 SYSCTL_JAIL_PARAM(_allow_mount, procfs, CTLTYPE_INT | CTLFLAG_RW,
@@ -4399,11 +4498,14 @@ SYSCTL_JAIL_PARAM(_allow_mount, tmpfs, CTLTYPE_INT | CTLFLAG_RW,
 SYSCTL_JAIL_PARAM(_allow_mount, zfs, CTLTYPE_INT | CTLFLAG_RW,
     "B", "Jail may mount the zfs file system");
 
+#ifdef RACCT
 void
 prison_racct_foreach(void (*callback)(struct racct *racct,
     void *arg2, void *arg3), void *arg2, void *arg3)
 {
 	struct prison_racct *prr;
+
+	ASSERT_RACCT_ENABLED();
 
 	sx_slock(&allprison_lock);
 	LIST_FOREACH(prr, &allprison_racct, prr_next)
@@ -4416,6 +4518,7 @@ prison_racct_find_locked(const char *name)
 {
 	struct prison_racct *prr;
 
+	ASSERT_RACCT_ENABLED();
 	sx_assert(&allprison_lock, SA_XLOCKED);
 
 	if (name[0] == '\0' || strlen(name) >= MAXHOSTNAMELEN)
@@ -4446,6 +4549,8 @@ prison_racct_find(const char *name)
 {
 	struct prison_racct *prr;
 
+	ASSERT_RACCT_ENABLED();
+
 	sx_xlock(&allprison_lock);
 	prr = prison_racct_find_locked(name);
 	sx_xunlock(&allprison_lock);
@@ -4456,6 +4561,8 @@ void
 prison_racct_hold(struct prison_racct *prr)
 {
 
+	ASSERT_RACCT_ENABLED();
+
 	refcount_acquire(&prr->prr_refcount);
 }
 
@@ -4463,6 +4570,7 @@ static void
 prison_racct_free_locked(struct prison_racct *prr)
 {
 
+	ASSERT_RACCT_ENABLED();
 	sx_assert(&allprison_lock, SA_XLOCKED);
 
 	if (refcount_release(&prr->prr_refcount)) {
@@ -4477,6 +4585,7 @@ prison_racct_free(struct prison_racct *prr)
 {
 	int old;
 
+	ASSERT_RACCT_ENABLED();
 	sx_assert(&allprison_lock, SA_UNLOCKED);
 
 	old = prr->prr_refcount;
@@ -4488,12 +4597,12 @@ prison_racct_free(struct prison_racct *prr)
 	sx_xunlock(&allprison_lock);
 }
 
-#ifdef RACCT
 static void
 prison_racct_attach(struct prison *pr)
 {
 	struct prison_racct *prr;
 
+	ASSERT_RACCT_ENABLED();
 	sx_assert(&allprison_lock, SA_XLOCKED);
 
 	prr = prison_racct_find_locked(pr->pr_name);
@@ -4512,6 +4621,8 @@ prison_racct_modify(struct prison *pr)
 	struct proc *p;
 	struct ucred *cred;
 	struct prison_racct *oldprr;
+
+	ASSERT_RACCT_ENABLED();
 
 	sx_slock(&allproc_lock);
 	sx_xlock(&allprison_lock);
@@ -4552,6 +4663,7 @@ static void
 prison_racct_detach(struct prison *pr)
 {
 
+	ASSERT_RACCT_ENABLED();
 	sx_assert(&allprison_lock, SA_UNLOCKED);
 
 	if (pr->pr_prison_racct == NULL)
@@ -4633,6 +4745,44 @@ db_show_prison(struct prison *pr)
 		db_printf(" %s %s\n",
 		    ii == 0 ? "ip6.addr        =" : "                 ",
 		    ip6_sprintf(ip6buf, &pr->pr_ip6[ii]));
+#endif
+#ifdef PAX
+	db_printf(" pr_hardening = {\n");
+	db_printf(" .hr_pax_aslr_status             = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_status);
+	db_printf(" .hr_pax_aslr_mmap_len           = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_mmap_len);
+	db_printf(" .hr_pax_aslr_stack_len          = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_stack_len);
+	db_printf(" .hr_pax_aslr_exec_len           = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_exec_len);
+	db_printf(" .hr_pax_aslr_compat_status      = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_compat_status);
+	db_printf(" .hr_pax_aslr_compat_mmap_len    = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_compat_mmap_len);
+	db_printf(" .hr_pax_aslr_compat_stack_len   = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_compat_stack_len);
+	db_printf(" .hr_pax_aslr_compat_exec_len    = %d\n",
+	    pr->pr_hardening.hr_pax_aslr_compat_exec_len);
+	db_printf(" .hr_pax_pageexec_status           = %d\n",
+	   pr->pr_hardening.hr_pax_pageexec_status);
+	db_printf(" .hr_pax_mprotect_status           = %d\n",
+	   pr->pr_hardening.hr_pax_mprotect_status);
+	db_printf(" .hr_pax_segvguard_status        = %d\n",
+	   pr->pr_hardening.hr_pax_segvguard_status);
+	db_printf(" .hr_pax_segvguard_expiry        = %d\n",
+	   pr->pr_hardening.hr_pax_segvguard_expiry);
+	db_printf(" .hr_pax_segvguard_suspension    = %d\n",
+	   pr->pr_hardening.hr_pax_segvguard_suspension);
+	db_printf(" .hr_pax_segvguard_maxcrashes    = %d\n",
+	   pr->pr_hardening.hr_pax_segvguard_maxcrashes);
+	db_printf(" .hr_pax_map32_enabled           = %d\n",
+	   pr->pr_hardening.hr_pax_map32_enabled);
+	db_printf(" .hr_pax_procfs_harden           = %d\n",
+	   pr->pr_hardening.hr_pax_procfs_harden);
+	db_printf(" .hr_pax_ptrace_hardening_status = %d\n",
+	   pr->pr_hardening.hr_pax_ptrace_hardening_status);
+	db_printf(" }\n");
 #endif
 }
 

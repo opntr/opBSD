@@ -11,8 +11,10 @@ FILES=	\
 	bsd.crunchgen.mk \
 	bsd.dep.mk \
 	bsd.doc.mk \
+	bsd.dtb.mk \
 	bsd.endian.mk \
 	bsd.files.mk \
+	bsd.hardenedbsd.mk \
 	bsd.incs.mk \
 	bsd.info.mk \
 	bsd.init.mk \

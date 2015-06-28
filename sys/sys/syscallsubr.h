@@ -46,6 +46,7 @@ struct ksiginfo;
 struct mbuf;
 struct msghdr;
 struct msqid_ds;
+struct pollfd;
 struct ogetdirentries_args;
 struct rlimit;
 struct rusage;
@@ -56,7 +57,7 @@ struct stat;
 struct thr_param;
 struct __wrusage;
 
-int	kern___getcwd(struct thread *td, u_char *buf, enum uio_seg bufseg,
+int	kern___getcwd(struct thread *td, char *buf, enum uio_seg bufseg,
 	    u_int buflen);
 int	kern_accept(struct thread *td, int s, struct sockaddr **name,
 	    socklen_t *namelen, struct file **fp);
@@ -97,6 +98,7 @@ int	kern_fchmodat(struct thread *td, int fd, char *path,
 int	kern_fchownat(struct thread *td, int fd, char *path,
 	    enum uio_seg pathseg, int uid, int gid, int flag);
 int	kern_fcntl(struct thread *td, int fd, int cmd, intptr_t arg);
+int	kern_fcntl_freebsd(struct thread *td, int fd, int cmd, long arg);
 int	kern_fhstat(struct thread *td, fhandle_t fh, struct stat *buf);
 int	kern_fhstatfs(struct thread *td, fhandle_t fh, struct statfs *buf);
 int	kern_fstat(struct thread *td, int fd, struct stat *sbp);
@@ -163,6 +165,8 @@ int	kern_pathconf(struct thread *td, char *path, enum uio_seg pathseg,
 	    int name, u_long flags);
 int	kern_pipe(struct thread *td, int fildes[2]);
 int	kern_pipe2(struct thread *td, int fildes[2], int flags);
+int	kern_poll(struct thread *td, struct pollfd *fds, u_int nfds,
+	    struct timespec *tsp, sigset_t *uset);
 int	kern_posix_fadvise(struct thread *td, int fd, off_t offset, off_t len,
 	    int advice);
 int	kern_posix_fallocate(struct thread *td, int fd, off_t offset,

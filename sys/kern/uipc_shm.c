@@ -48,7 +48,8 @@ __FBSDID("$FreeBSD$");
 #include "opt_ktrace.h"
 
 #include <sys/param.h>
-#include <sys/capability.h>
+#include <sys/capsicum.h>
+#include <sys/conf.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
 #include <sys/filedesc.h>
@@ -101,12 +102,14 @@ static LIST_HEAD(, shm_mapping) *shm_dictionary;
 static struct sx shm_dict_lock;
 static struct mtx shm_timestamp_lock;
 static u_long shm_hash;
+static struct unrhdr *shm_ino_unr;
+static dev_t shm_dev_ino;
 
 #define	SHM_HASH(fnv)	(&shm_dictionary[(fnv) & shm_hash])
 
 static int	shm_access(struct shmfd *shmfd, struct ucred *ucred, int flags);
 static struct shmfd *shm_alloc(struct ucred *ucred, mode_t mode);
-static void	shm_dict_init(void *arg);
+static void	shm_init(void *arg);
 static void	shm_drop(struct shmfd *shmfd);
 static struct shmfd *shm_hold(struct shmfd *shmfd);
 static void	shm_insert(char *path, Fnv32_t fnv, struct shmfd *shmfd);
@@ -408,6 +411,8 @@ shm_stat(struct file *fp, struct stat *sb, struct ucred *active_cred,
 	sb->st_uid = shmfd->shm_uid;
 	sb->st_gid = shmfd->shm_gid;
 	mtx_unlock(&shm_timestamp_lock);
+	sb->st_dev = shm_dev_ino;
+	sb->st_ino = shmfd->shm_ino;
 
 	return (0);
 }
@@ -539,6 +544,7 @@ static struct shmfd *
 shm_alloc(struct ucred *ucred, mode_t mode)
 {
 	struct shmfd *shmfd;
+	int ino;
 
 	shmfd = malloc(sizeof(*shmfd), M_SHMFD, M_WAITOK | M_ZERO);
 	shmfd->shm_size = 0;
@@ -548,13 +554,19 @@ shm_alloc(struct ucred *ucred, mode_t mode)
 	shmfd->shm_object = vm_pager_allocate(OBJT_DEFAULT, NULL,
 	    shmfd->shm_size, VM_PROT_DEFAULT, 0, ucred);
 	KASSERT(shmfd->shm_object != NULL, ("shm_create: vm_pager_allocate"));
+	shmfd->shm_object->pg_color = 0;
 	VM_OBJECT_WLOCK(shmfd->shm_object);
 	vm_object_clear_flag(shmfd->shm_object, OBJ_ONEMAPPING);
-	vm_object_set_flag(shmfd->shm_object, OBJ_NOSPLIT);
+	vm_object_set_flag(shmfd->shm_object, OBJ_COLORED | OBJ_NOSPLIT);
 	VM_OBJECT_WUNLOCK(shmfd->shm_object);
 	vfs_timestamp(&shmfd->shm_birthtime);
 	shmfd->shm_atime = shmfd->shm_mtime = shmfd->shm_ctime =
 	    shmfd->shm_birthtime;
+	ino = alloc_unr(shm_ino_unr);
+	if (ino == -1)
+		shmfd->shm_ino = 0;
+	else
+		shmfd->shm_ino = ino;
 	refcount_init(&shmfd->shm_refs, 1);
 	mtx_init(&shmfd->shm_mtx, "shmrl", NULL, MTX_DEF);
 	rangelock_init(&shmfd->shm_rl);
@@ -585,6 +597,8 @@ shm_drop(struct shmfd *shmfd)
 		rangelock_destroy(&shmfd->shm_rl);
 		mtx_destroy(&shmfd->shm_mtx);
 		vm_object_deallocate(shmfd->shm_object);
+		if (shmfd->shm_ino != 0)
+			free_unr(shm_ino_unr, shmfd->shm_ino);
 		free(shmfd, M_SHMFD);
 	}
 }
@@ -617,14 +631,18 @@ shm_access(struct shmfd *shmfd, struct ucred *ucred, int flags)
  * the mappings in a hash table.
  */
 static void
-shm_dict_init(void *arg)
+shm_init(void *arg)
 {
 
 	mtx_init(&shm_timestamp_lock, "shm timestamps", NULL, MTX_DEF);
 	sx_init(&shm_dict_lock, "shm dictionary");
 	shm_dictionary = hashinit(1024, M_SHMFD, &shm_hash);
+	shm_ino_unr = new_unrhdr(1, INT32_MAX, NULL);
+	KASSERT(shm_ino_unr != NULL, ("shm fake inodes not initialized"));
+	shm_dev_ino = devfs_alloc_cdp_inode();
+	KASSERT(shm_dev_ino > 0, ("shm dev inode not initialized"));
 }
-SYSINIT(shm_dict_init, SI_SUB_SYSV_SHM, SI_ORDER_ANY, shm_dict_init, NULL);
+SYSINIT(shm_init, SI_SUB_SYSV_SHM, SI_ORDER_ANY, shm_init, NULL);
 
 static struct shmfd *
 shm_lookup(char *path, Fnv32_t fnv)

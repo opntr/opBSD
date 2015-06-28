@@ -30,12 +30,13 @@ __FBSDID("$FreeBSD$");
 #include "opt_compat.h"
 #include "opt_inet.h"
 #include "opt_inet6.h"
+#include "opt_pax.h"
 
 #define __ELF_WORD_SIZE 32
 
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/capability.h>
+#include <sys/capsicum.h>
 #include <sys/clock.h>
 #include <sys/exec.h>
 #include <sys/fcntl.h>
@@ -55,6 +56,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/namei.h>
+#include <sys/pax.h>
 #include <sys/proc.h>
 #include <sys/procctl.h>
 #include <sys/reboot.h>
@@ -400,12 +402,17 @@ int
 freebsd32_execve(struct thread *td, struct freebsd32_execve_args *uap)
 {
 	struct image_args eargs;
+	struct vmspace *oldvmspace;
 	int error;
 
+	error = pre_execve(td, &oldvmspace);
+	if (error != 0)
+		return (error);
 	error = freebsd32_exec_copyin_args(&eargs, uap->fname, UIO_USERSPACE,
 	    uap->argv, uap->envv);
 	if (error == 0)
 		error = kern_execve(td, &eargs, NULL);
+	post_execve(td, error, oldvmspace);
 	return (error);
 }
 
@@ -413,14 +420,19 @@ int
 freebsd32_fexecve(struct thread *td, struct freebsd32_fexecve_args *uap)
 {
 	struct image_args eargs;
+	struct vmspace *oldvmspace;
 	int error;
 
+	error = pre_execve(td, &oldvmspace);
+	if (error != 0)
+		return (error);
 	error = freebsd32_exec_copyin_args(&eargs, NULL, UIO_SYSSPACE,
 	    uap->argv, uap->envv);
 	if (error == 0) {
 		eargs.fd = uap->fd;
 		error = kern_execve(td, &eargs, NULL);
 	}
+	post_execve(td, error, oldvmspace);
 	return (error);
 }
 
@@ -480,10 +492,6 @@ freebsd32_mprotect(struct thread *td, struct freebsd32_mprotect_args *uap)
 	ap.addr = PTRIN(uap->addr);
 	ap.len = uap->len;
 	ap.prot = uap->prot;
-#if defined(__amd64__) || defined(__ia64__)
-	if (i386_read_exec && (ap.prot & PROT_READ) != 0)
-		ap.prot |= PROT_EXEC;
-#endif
 	return (sys_mprotect(td, &ap));
 }
 
@@ -568,11 +576,6 @@ freebsd32_mmap(struct thread *td, struct freebsd32_mmap_args *uap)
 		addr = start;
 		len = end - start;
 	}
-#endif
-
-#if defined(__amd64__) || defined(__ia64__)
-	if (i386_read_exec && (prot & PROT_READ))
-		prot |= PROT_EXEC;
 #endif
 
 	ap.addr = (void *) addr;
@@ -1924,16 +1927,21 @@ freebsd32_sysctl(struct thread *td, struct freebsd32_sysctl_args *uap)
 {
 	int error, name[CTL_MAXNAME];
 	size_t j, oldlen;
+	uint32_t tmp;
 
 	if (uap->namelen > CTL_MAXNAME || uap->namelen < 2)
 		return (EINVAL);
  	error = copyin(uap->name, name, uap->namelen * sizeof(int));
  	if (error)
 		return (error);
-	if (uap->oldlenp)
-		oldlen = fuword32(uap->oldlenp);
-	else
+	if (uap->oldlenp) {
+		error = fueword32(uap->oldlenp, &tmp);
+		oldlen = tmp;
+	} else {
 		oldlen = 0;
+	}
+	if (error != 0)
+		return (EFAULT);
 	error = userland_sysctl(td, name, uap->namelen,
 		uap->old, &oldlen, 1,
 		uap->new, uap->newlen, &j, SCTL_MASK32);
@@ -2858,6 +2866,10 @@ freebsd32_copyout_strings(struct image_params *imgp)
 		szsigcode = 0;
 	destp =	(uintptr_t)arginfo;
 
+#ifdef PAX_ASLR
+	pax_aslr_stack(imgp->proc, &destp);
+#endif
+
 	/*
 	 * install sigcode
 	 */
@@ -3057,18 +3069,125 @@ int
 freebsd32_procctl(struct thread *td, struct freebsd32_procctl_args *uap)
 {
 	void *data;
-	int error, flags;
+	union {
+		struct procctl_reaper_status rs;
+		struct procctl_reaper_pids rp;
+		struct procctl_reaper_kill rk;
+	} x;
+	union {
+		struct procctl_reaper_pids32 rp;
+	} x32;
+	int error, error1, flags;
 
 	switch (uap->com) {
 	case PROC_SPROTECT:
+	case PROC_TRACE_CTL:
 		error = copyin(PTRIN(uap->data), &flags, sizeof(flags));
-		if (error)
+		if (error != 0)
 			return (error);
+		data = &flags;
+		break;
+	case PROC_REAP_ACQUIRE:
+	case PROC_REAP_RELEASE:
+		if (uap->data != NULL)
+			return (EINVAL);
+		data = NULL;
+		break;
+	case PROC_REAP_STATUS:
+		data = &x.rs;
+		break;
+	case PROC_REAP_GETPIDS:
+		error = copyin(uap->data, &x32.rp, sizeof(x32.rp));
+		if (error != 0)
+			return (error);
+		CP(x32.rp, x.rp, rp_count);
+		PTRIN_CP(x32.rp, x.rp, rp_pids);
+		data = &x.rp;
+		break;
+	case PROC_REAP_KILL:
+		error = copyin(uap->data, &x.rk, sizeof(x.rk));
+		if (error != 0)
+			return (error);
+		data = &x.rk;
+		break;
+	case PROC_TRACE_STATUS:
 		data = &flags;
 		break;
 	default:
 		return (EINVAL);
 	}
-	return (kern_procctl(td, uap->idtype, PAIR32TO64(id_t, uap->id),
-	    uap->com, data));
+	error = kern_procctl(td, uap->idtype, PAIR32TO64(id_t, uap->id),
+	    uap->com, data);
+	switch (uap->com) {
+	case PROC_REAP_STATUS:
+		if (error == 0)
+			error = copyout(&x.rs, uap->data, sizeof(x.rs));
+		break;
+	case PROC_REAP_KILL:
+		error1 = copyout(&x.rk, uap->data, sizeof(x.rk));
+		if (error == 0)
+			error = error1;
+		break;
+	case PROC_TRACE_STATUS:
+		if (error == 0)
+			error = copyout(&flags, uap->data, sizeof(flags));
+		break;
+	}
+	return (error);
+}
+
+int
+freebsd32_fcntl(struct thread *td, struct freebsd32_fcntl_args *uap)
+{
+	long tmp;
+
+	switch (uap->cmd) {
+	/*
+	 * Do unsigned conversion for arg when operation
+	 * interprets it as flags or pointer.
+	 */
+	case F_SETLK_REMOTE:
+	case F_SETLKW:
+	case F_SETLK:
+	case F_GETLK:
+	case F_SETFD:
+	case F_SETFL:
+	case F_OGETLK:
+	case F_OSETLK:
+	case F_OSETLKW:
+		tmp = (unsigned int)(uap->arg);
+		break;
+	default:
+		tmp = uap->arg;
+		break;
+	}
+	return (kern_fcntl_freebsd(td, uap->fd, uap->cmd, tmp));
+}
+
+int
+freebsd32_ppoll(struct thread *td, struct freebsd32_ppoll_args *uap)
+{
+	struct timespec32 ts32;
+	struct timespec ts, *tsp;
+	sigset_t set, *ssp;
+	int error;
+
+	if (uap->ts != NULL) {
+		error = copyin(uap->ts, &ts32, sizeof(ts32));
+		if (error != 0)
+			return (error);
+		CP(ts32, ts, tv_sec);
+		CP(ts32, ts, tv_nsec);
+		tsp = &ts;
+	} else
+		tsp = NULL;
+	if (uap->set != NULL) {
+		error = copyin(uap->set, &set, sizeof(set));
+		if (error != 0)
+			return (error);
+		ssp = &set;
+	} else
+		ssp = NULL;
+
+	return (kern_poll(td, uap->fds, uap->nfds, tsp, ssp));
 }

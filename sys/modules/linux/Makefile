@@ -13,8 +13,10 @@ SRCS=	linux_fork.c linux${SFX}_dummy.c linux_emul.c linux_file.c \
 	linux${SFX}_machdep.c linux_mib.c linux_misc.c linux_signal.c \
 	linux_socket.c linux_stats.c linux_sysctl.c linux${SFX}_sysent.c \
 	linux${SFX}_sysvec.c linux_uid16.c linux_util.c linux_time.c \
+	linux_timer.c \
 	opt_inet6.h opt_compat.h opt_kdtrace.h opt_posix.h opt_usb.h \
 	vnode_if.h device_if.h bus_if.h assym.s
+DPSRCS=	linux${SFX}_genassym.c
 
 # XXX: for assym.s
 SRCS+=  opt_kstack_pages.h opt_nfs.h opt_compat.h opt_hwpmc_hooks.h
@@ -25,7 +27,7 @@ SRCS+=	opt_apic.h
 OBJS=	linux${SFX}_locore.o linux${SFX}_support.o
 
 .if ${MACHINE_CPUARCH} == "i386"
-SRCS+=	linux_ptrace.c imgact_linux.c opt_cpu.h
+SRCS+=	linux_ptrace.c opt_cpu.h
 .endif
 
 EXPORT_SYMS=

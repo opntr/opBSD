@@ -1227,6 +1227,7 @@ bxe_drv_stats_update(struct bxe_softc *sc)
         UPDATE_ESTAT_QSTAT(rx_calls);
         UPDATE_ESTAT_QSTAT(rx_pkts);
         UPDATE_ESTAT_QSTAT(rx_tpa_pkts);
+        UPDATE_ESTAT_QSTAT(rx_jumbo_sge_pkts);
         UPDATE_ESTAT_QSTAT(rx_soft_errors);
         UPDATE_ESTAT_QSTAT(rx_hw_csum_errors);
         UPDATE_ESTAT_QSTAT(rx_ofld_frames_csum_ip);
@@ -1306,7 +1307,10 @@ bxe_stats_update(struct bxe_softc *sc)
 
         if (bxe_storm_stats_update(sc)) {
             if (sc->stats_pending++ == 3) {
-                bxe_panic(sc, ("storm stats not updated for 3 times\n"));
+		if (sc->ifnet->if_drv_flags & IFF_DRV_RUNNING) {
+			atomic_store_rel_long(&sc->chip_tq_flags, CHIP_TQ_REINIT);
+			taskqueue_enqueue(sc->chip_tq, &sc->chip_tq_task);
+		}
             }
             return;
         }

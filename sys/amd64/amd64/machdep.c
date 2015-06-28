@@ -153,17 +153,13 @@ CTASSERT(offsetof(struct pcpu, pc_curthread) == 0);
 
 extern u_int64_t hammer_time(u_int64_t, u_int64_t);
 
-extern void printcpuinfo(void);	/* XXX header file */
-extern void identify_cpu(void);
-extern void panicifcpuunsupported(void);
-
 #define	CS_SECURE(cs)		(ISPL(cs) == SEL_UPL)
 #define	EFL_SECURE(ef, oef)	((((ef) ^ (oef)) & ~PSL_USERCHANGE) == 0)
 
 static void cpu_startup(void *);
 static void get_fpcontext(struct thread *td, mcontext_t *mcp,
     char *xfpusave, size_t xfpusave_len);
-static int  set_fpcontext(struct thread *td, const mcontext_t *mcp,
+static int  set_fpcontext(struct thread *td, mcontext_t *mcp,
     char *xfpustate, size_t xfpustate_len);
 SYSINIT(cpu, SI_SUB_CPU, SI_ORDER_FIRST, cpu_startup, NULL);
 
@@ -238,9 +234,11 @@ cpu_startup(dummy)
 	if (sysenv != NULL) {
 		if (strncmp(sysenv, "MacBook1,1", 10) == 0 ||
 		    strncmp(sysenv, "MacBook3,1", 10) == 0 ||
+		    strncmp(sysenv, "MacBook4,1", 10) == 0 ||
 		    strncmp(sysenv, "MacBookPro1,1", 13) == 0 ||
 		    strncmp(sysenv, "MacBookPro1,2", 13) == 0 ||
 		    strncmp(sysenv, "MacBookPro3,1", 13) == 0 ||
+		    strncmp(sysenv, "MacBookPro4,1", 13) == 0 ||
 		    strncmp(sysenv, "Macmini1,1", 10) == 0) {
 			if (bootverbose)
 				printf("Disabling LEGACY_USB_EN bit on "
@@ -431,6 +429,7 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	regs->tf_rflags &= ~(PSL_T | PSL_D);
 	regs->tf_cs = _ucodesel;
 	regs->tf_ds = _udatasel;
+	regs->tf_ss = _udatasel;
 	regs->tf_es = _udatasel;
 	regs->tf_fs = _ufssel;
 	regs->tf_gs = _ugssel;
@@ -718,15 +717,6 @@ cpu_idle_hlt(sbintime_t sbt)
 	*state = STATE_RUNNING;
 }
 
-/*
- * MWAIT cpu power states.  Lower 4 bits are sub-states.
- */
-#define	MWAIT_C0	0xf0
-#define	MWAIT_C1	0x00
-#define	MWAIT_C2	0x10
-#define	MWAIT_C3	0x20
-#define	MWAIT_C4	0x30
-
 static void
 cpu_idle_mwait(sbintime_t sbt)
 {
@@ -828,7 +818,7 @@ cpu_idle(int busy)
 	}
 
 	/* Apply AMD APIC timer C1E workaround. */
-	if (cpu_ident_amdc1e && cpu_disable_deep_sleep) {
+	if (cpu_ident_amdc1e && cpu_disable_c3_sleep) {
 		msr = rdmsr(MSR_AMDK8_IPM);
 		if (msr & AMDK8_CMPHALT)
 			wrmsr(MSR_AMDK8_IPM, msr & ~AMDK8_CMPHALT);
@@ -1519,6 +1509,12 @@ add_efi_map_entries(struct efi_map_header *efihdr, vm_paddr_t *physmap,
 	}
 }
 
+static char bootmethod[16] = "";
+SYSCTL_STRING(_machdep, OID_AUTO, bootmethod, CTLFLAG_RD, bootmethod, 0,
+    "System firmware boot method");
+
+#define	PAGES_PER_GB	(1024 * 1024 * 1024 / PAGE_SIZE)
+
 /*
  * Populate the (physmap) array with base/bound pairs describing the
  * available physical memory in the system, then test this memory and
@@ -1539,6 +1535,7 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 	struct bios_smap *smapbase;
 	struct efi_map_header *efihdr;
 	quad_t dcons_addr, dcons_size;
+	int page_counter;
 
 	bzero(physmap, sizeof(physmap));
 	basemem = 0;
@@ -1549,12 +1546,15 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 	smapbase = (struct bios_smap *)preload_search_info(kmdp,
 	    MODINFO_METADATA | MODINFOMD_SMAP);
 
-	if (efihdr != NULL)
+	if (efihdr != NULL) {
 		add_efi_map_entries(efihdr, physmap, &physmap_idx);
-	else if (smapbase != NULL)
+		strlcpy(bootmethod, "UEFI", sizeof(bootmethod));
+	} else if (smapbase != NULL) {
 		add_smap_entries(smapbase, physmap, &physmap_idx);
-	else
+		strlcpy(bootmethod, "BIOS", sizeof(bootmethod));
+	} else {
 		panic("No BIOS smap or EFI map info from loader!");
+	}
 
 	/*
 	 * Find the 'base memory' segment for SMP
@@ -1590,13 +1590,15 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 		Maxmem = atop(physmem_tunable);
 
 	/*
-	 * By default enable the memory test on real hardware, and disable
-	 * it if we appear to be running in a VM.  This avoids touching all
-	 * pages unnecessarily, which doesn't matter on real hardware but is
-	 * bad for shared VM hosts.  Use a general name so that
-	 * one could eventually do more with the code than just disable it.
+	 * The boot memory test is disabled by default, as it takes a
+	 * significant amount of time on large-memory systems, and is
+	 * unfriendly to virtual machines as it unnecessarily touches all
+	 * pages.
+	 *
+	 * A general name is used as the code may be extended to support
+	 * additional tests beyond the current "page present" test.
 	 */
-	memtest = (vm_guest > VM_GUEST_NO) ? 0 : 1;
+	memtest = 0;
 	TUNABLE_ULONG_FETCH("hw.memtest.tests", &memtest);
 
 	/*
@@ -1646,6 +1648,9 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 	 * physmap is in bytes, so when converting to page boundaries,
 	 * round up the start address and round down the end address.
 	 */
+	page_counter = 0;
+	if (memtest != 0)
+		printf("Testing system memory");
 	for (i = 0; i <= physmap_idx; i += 2) {
 		vm_paddr_t end;
 
@@ -1674,6 +1679,14 @@ getmemsize(caddr_t kmdp, u_int64_t first)
 			page_bad = FALSE;
 			if (memtest == 0)
 				goto skip_memtest;
+
+			/*
+			 * Print a "." every GB to show we're making
+			 * progress.
+			 */
+			page_counter++;
+			if ((page_counter % PAGES_PER_GB) == 0)
+				printf(".");
 
 			/*
 			 * map page into kernel: valid, read/write,non-cacheable
@@ -1762,6 +1775,8 @@ do_next:
 	}
 	*pte = 0;
 	invltlb();
+	if (memtest != 0)
+		printf("\n");
 
 	/*
 	 * XXX
@@ -1909,6 +1924,14 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	i8254_init();
 
 	/*
+	 * Use vt(4) by default for UEFI boot (during the sc(4)/vt(4)
+	 * transition).
+	 */
+	if (kmdp != NULL && preload_search_info(kmdp,
+	    MODINFO_METADATA | MODINFOMD_EFI_MAP) != NULL)
+		vty_set_preferred(VTY_VT);
+
+	/*
 	 * Initialize the console before we print anything out.
 	 */
 	cninit();
@@ -2037,6 +2060,62 @@ cpu_pcpu_init(struct pcpu *pcpu, int cpuid, size_t size)
 	pcpu->pc_acpi_id = 0xffffffff;
 }
 
+static int
+smap_sysctl_handler(SYSCTL_HANDLER_ARGS)
+{
+	struct bios_smap *smapbase;
+	struct bios_smap_xattr smap;
+	caddr_t kmdp;
+	uint32_t *smapattr;
+	int count, error, i;
+
+	/* Retrieve the system memory map from the loader. */
+	kmdp = preload_search_by_type("elf kernel");
+	if (kmdp == NULL)
+		kmdp = preload_search_by_type("elf64 kernel");
+	smapbase = (struct bios_smap *)preload_search_info(kmdp,
+	    MODINFO_METADATA | MODINFOMD_SMAP);
+	if (smapbase == NULL)
+		return (0);
+	smapattr = (uint32_t *)preload_search_info(kmdp,
+	    MODINFO_METADATA | MODINFOMD_SMAP_XATTR);
+	count = *((uint32_t *)smapbase - 1) / sizeof(*smapbase);
+	error = 0;
+	for (i = 0; i < count; i++) {
+		smap.base = smapbase[i].base;
+		smap.length = smapbase[i].length;
+		smap.type = smapbase[i].type;
+		if (smapattr != NULL)
+			smap.xattr = smapattr[i];
+		else
+			smap.xattr = 0;
+		error = SYSCTL_OUT(req, &smap, sizeof(smap));
+	}
+	return (error);
+}
+SYSCTL_PROC(_machdep, OID_AUTO, smap, CTLTYPE_OPAQUE|CTLFLAG_RD, NULL, 0,
+    smap_sysctl_handler, "S,bios_smap_xattr", "Raw BIOS SMAP data");
+
+static int
+efi_map_sysctl_handler(SYSCTL_HANDLER_ARGS)
+{
+	struct efi_map_header *efihdr;
+	caddr_t kmdp;
+	uint32_t efisize;
+
+	kmdp = preload_search_by_type("elf kernel");
+	if (kmdp == NULL)
+		kmdp = preload_search_by_type("elf64 kernel");
+	efihdr = (struct efi_map_header *)preload_search_info(kmdp,
+	    MODINFO_METADATA | MODINFOMD_EFI_MAP);
+	if (efihdr == NULL)
+		return (0);
+	efisize = *((uint32_t *)efihdr - 1);
+	return (SYSCTL_OUT(req, efihdr, efisize));
+}
+SYSCTL_PROC(_machdep, OID_AUTO, efi_map, CTLTYPE_OPAQUE|CTLFLAG_RD, NULL, 0,
+    efi_map_sysctl_handler, "S,efi_map_header", "Raw EFI Memory Map");
+
 void
 spinlock_enter(void)
 {
@@ -2092,6 +2171,15 @@ int
 ptrace_set_pc(struct thread *td, unsigned long addr)
 {
 
+	/*
+	 * DragonflyBSD's safety towards:
+	 * enforce canonical addresses - this should
+	 * fix SYSRET's potential issue handling
+	 */
+	if (addr & 0x0000800000000000LLU)
+		addr = addr | 0xFFFF000000000000LLU;
+	else
+		addr = addr & 0x0000FFFFFFFFFFFFLLU;
 	td->td_frame->tf_rip = addr;
 	set_pcb_flags(td->td_pcb, PCB_FULL_IRET);
 	return (0);
@@ -2342,7 +2430,7 @@ get_mcontext(struct thread *td, mcontext_t *mcp, int flags)
  * touch the cs selector.
  */
 int
-set_mcontext(struct thread *td, const mcontext_t *mcp)
+set_mcontext(struct thread *td, mcontext_t *mcp)
 {
 	struct pcb *pcb;
 	struct trapframe *tp;
@@ -2429,7 +2517,7 @@ get_fpcontext(struct thread *td, mcontext_t *mcp, char *xfpusave,
 }
 
 static int
-set_fpcontext(struct thread *td, const mcontext_t *mcp, char *xfpustate,
+set_fpcontext(struct thread *td, mcontext_t *mcp, char *xfpustate,
     size_t xfpustate_len)
 {
 	struct savefpu *fpstate;

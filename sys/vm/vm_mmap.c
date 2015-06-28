@@ -45,15 +45,17 @@ __FBSDID("$FreeBSD$");
 
 #include "opt_compat.h"
 #include "opt_hwpmc_hooks.h"
+#include "opt_pax.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/capability.h>
+#include <sys/capsicum.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/sysproto.h>
 #include <sys/filedesc.h>
+#include <sys/pax.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/procctl.h>
@@ -229,14 +231,9 @@ sys_mmap(td, uap)
 	 * ld.so sometimes issues anonymous map requests with non-zero
 	 * pos.
 	 */
-	if (!SV_CURPROC_FLAG(SV_AOUT)) {
-		if ((uap->len == 0 && curproc->p_osrel >= P_OSREL_MAP_ANON) ||
-		    ((flags & MAP_ANON) != 0 && (uap->fd != -1 || pos != 0)))
-			return (EINVAL);
-	} else {
-		if ((flags & MAP_ANON) != 0)
-			pos = 0;
-	}
+	if ((uap->len == 0 && curproc->p_osrel >= P_OSREL_MAP_ANON) ||
+	    ((flags & MAP_ANON) != 0 && (uap->fd != -1 || pos != 0)))
+		return (EINVAL);
 
 	if (flags & MAP_STACK) {
 		if ((uap->fd != -1) ||
@@ -265,6 +262,12 @@ sys_mmap(td, uap)
 	    (align >> MAP_ALIGNMENT_SHIFT >= sizeof(void *) * NBBY ||
 	    align >> MAP_ALIGNMENT_SHIFT < PAGE_SHIFT))
 		return (EINVAL);
+
+#if defined(MAP_32BIT) && defined(PAX_HARDENING)
+	if (flags & MAP_32BIT)
+		if (pax_map32_enabled(td) == 0)
+			return (EPERM);
+#endif
 
 	/*
 	 * Check for illegal addresses.  Watch out for address wrap... Note
@@ -416,6 +419,13 @@ sys_mmap(td, uap)
 map:
 	td->td_fpop = fp;
 	maxprot &= cap_maxprot;
+#ifdef PAX_NOEXEC
+	pax_pageexec(td->td_proc, &prot, &maxprot);
+	pax_mprotect(td->td_proc, &prot, &maxprot);
+#endif
+#ifdef PAX_ASLR
+	pax_aslr_mmap(td->td_proc, &addr, (vm_offset_t)uap->addr, flags);
+#endif
 	error = vm_mmap(&vms->vm_map, &addr, size, prot, maxprot,
 	    flags, handle_type, handle, pos);
 	td->td_fpop = NULL;
@@ -487,13 +497,6 @@ ommap(td, uap)
 	nargs.addr = uap->addr;
 	nargs.len = uap->len;
 	nargs.prot = cvtbsdprot[uap->prot & 0x7];
-#ifdef COMPAT_FREEBSD32
-#if defined(__amd64__) || defined(__ia64__)
-	if (i386_read_exec && SV_PROC_FLAG(td->td_proc, SV_ILP32) &&
-	    nargs.prot != 0)
-		nargs.prot |= PROT_EXEC;
-#endif
-#endif
 	nargs.flags = 0;
 	if (uap->flags & OMAP_ANON)
 		nargs.flags |= MAP_ANON;
@@ -1095,16 +1098,18 @@ vm_mlock(struct proc *proc, struct ucred *cred, const void *addr0, size_t len)
 	if (npages + cnt.v_wire_count > vm_page_max_wired)
 		return (EAGAIN);
 #ifdef RACCT
-	PROC_LOCK(proc);
-	error = racct_set(proc, RACCT_MEMLOCK, nsize);
-	PROC_UNLOCK(proc);
-	if (error != 0)
-		return (ENOMEM);
+	if (racct_enable) {
+		PROC_LOCK(proc);
+		error = racct_set(proc, RACCT_MEMLOCK, nsize);
+		PROC_UNLOCK(proc);
+		if (error != 0)
+			return (ENOMEM);
+	}
 #endif
 	error = vm_map_wire(map, start, end,
 	    VM_MAP_WIRE_USER | VM_MAP_WIRE_NOHOLES);
 #ifdef RACCT
-	if (error != KERN_SUCCESS) {
+	if (racct_enable && error != KERN_SUCCESS) {
 		PROC_LOCK(proc);
 		racct_set(proc, RACCT_MEMLOCK,
 		    ptoa(pmap_wired_count(map->pmap)));
@@ -1152,11 +1157,13 @@ sys_mlockall(td, uap)
 		PROC_UNLOCK(td->td_proc);
 	}
 #ifdef RACCT
-	PROC_LOCK(td->td_proc);
-	error = racct_set(td->td_proc, RACCT_MEMLOCK, map->size);
-	PROC_UNLOCK(td->td_proc);
-	if (error != 0)
-		return (ENOMEM);
+	if (racct_enable) {
+		PROC_LOCK(td->td_proc);
+		error = racct_set(td->td_proc, RACCT_MEMLOCK, map->size);
+		PROC_UNLOCK(td->td_proc);
+		if (error != 0)
+			return (ENOMEM);
+	}
 #endif
 
 	if (uap->how & MCL_FUTURE) {
@@ -1178,7 +1185,7 @@ sys_mlockall(td, uap)
 		error = (error == KERN_SUCCESS ? 0 : EAGAIN);
 	}
 #ifdef RACCT
-	if (error != KERN_SUCCESS) {
+	if (racct_enable && error != KERN_SUCCESS) {
 		PROC_LOCK(td->td_proc);
 		racct_set(td->td_proc, RACCT_MEMLOCK,
 		    ptoa(pmap_wired_count(map->pmap)));
@@ -1220,7 +1227,7 @@ sys_munlockall(td, uap)
 	error = vm_map_unwire(map, vm_map_min(map), vm_map_max(map),
 	    VM_MAP_WIRE_USER|VM_MAP_WIRE_HOLESOK);
 #ifdef RACCT
-	if (error == KERN_SUCCESS) {
+	if (racct_enable && error == KERN_SUCCESS) {
 		PROC_LOCK(td->td_proc);
 		racct_set(td->td_proc, RACCT_MEMLOCK, 0);
 		PROC_UNLOCK(td->td_proc);
@@ -1264,7 +1271,7 @@ sys_munlock(td, uap)
 	error = vm_map_unwire(&td->td_proc->p_vmspace->vm_map, start, end,
 	    VM_MAP_WIRE_USER | VM_MAP_WIRE_NOHOLES);
 #ifdef RACCT
-	if (error == KERN_SUCCESS) {
+	if (racct_enable && error == KERN_SUCCESS) {
 		PROC_LOCK(td->td_proc);
 		map = &td->td_proc->p_vmspace->vm_map;
 		racct_set(td->td_proc, RACCT_MEMLOCK,
@@ -1293,11 +1300,9 @@ vm_mmap_vnode(struct thread *td, vm_size_t objsize,
 	struct vattr va;
 	vm_object_t obj;
 	vm_offset_t foff;
-	struct mount *mp;
 	struct ucred *cred;
 	int error, flags, locktype;
 
-	mp = vp->v_mount;
 	cred = td->td_ucred;
 	if ((*maxprotp & VM_PROT_WRITE) && (*flagsp & MAP_SHARED))
 		locktype = LK_EXCLUSIVE;

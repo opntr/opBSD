@@ -255,25 +255,6 @@ g_disk_done(struct bio *bp)
 	g_destroy_bio(bp);
 }
 
-static void
-g_disk_done_single(struct bio *bp)
-{
-	struct bintime now;
-	struct g_disk_softc *sc;
-
-	bp->bio_completed = bp->bio_length - bp->bio_resid;
-	bp->bio_done = (void *)bp->bio_to;
-	bp->bio_to = LIST_FIRST(&bp->bio_disk->d_geom->provider);
-	if ((bp->bio_cmd & (BIO_READ|BIO_WRITE|BIO_DELETE|BIO_FLUSH)) != 0) {
-		binuptime(&now);
-		sc = bp->bio_to->private;
-		mtx_lock(&sc->done_mtx);
-		devstat_end_transaction_bio_bt(sc->dp->d_devstat, bp, &now);
-		mtx_unlock(&sc->done_mtx);
-	}
-	g_io_deliver(bp, bp->bio_error);
-}
-
 static int
 g_disk_ioctl(struct g_provider *pp, u_long cmd, void * data, int fflag, struct thread *td)
 {
@@ -299,7 +280,7 @@ g_disk_start(struct bio *bp)
 	struct disk *dp;
 	struct g_disk_softc *sc;
 	int error;
-	off_t d_maxsize, off;
+	off_t off;
 
 	sc = bp->bio_to->private;
 	if (sc == NULL || (dp = sc->dp) == NULL || dp->d_destroyed) {
@@ -316,22 +297,6 @@ g_disk_start(struct bio *bp)
 		/* fall-through */
 	case BIO_READ:
 	case BIO_WRITE:
-		d_maxsize = (bp->bio_cmd == BIO_DELETE) ?
-		    dp->d_delmaxsize : dp->d_maxsize;
-		if (bp->bio_length <= d_maxsize) {
-			bp->bio_disk = dp;
-			bp->bio_to = (void *)bp->bio_done;
-			bp->bio_done = g_disk_done_single;
-			bp->bio_pblkno = bp->bio_offset / dp->d_sectorsize;
-			bp->bio_bcount = bp->bio_length;
-			mtx_lock(&sc->start_mtx);
-			devstat_start_transaction_bio(dp->d_devstat, bp);
-			mtx_unlock(&sc->start_mtx);
-			g_disk_lock_giant(dp);
-			dp->d_strategy(bp);
-			g_disk_unlock_giant(dp);
-			break;
-		}
 		off = 0;
 		bp3 = NULL;
 		bp2 = g_clone_bio(bp);
@@ -340,6 +305,10 @@ g_disk_start(struct bio *bp)
 			break;
 		}
 		do {
+			off_t d_maxsize;
+
+			d_maxsize = (bp->bio_cmd == BIO_DELETE) ?
+			    dp->d_delmaxsize : dp->d_maxsize;
 			bp2->bio_offset += off;
 			bp2->bio_length -= off;
 			if ((bp->bio_flags & BIO_UNMAPPED) == 0) {
@@ -412,23 +381,32 @@ g_disk_start(struct bio *bp)
 			break;
 		else if (g_handleattr_str(bp, "GEOM::ident", dp->d_ident))
 			break;
-		else if (g_handleattr(bp, "GEOM::hba_vendor",
-		    &dp->d_hba_vendor, 2))
+		else if (g_handleattr_uint16_t(bp, "GEOM::hba_vendor",
+		    dp->d_hba_vendor))
 			break;
-		else if (g_handleattr(bp, "GEOM::hba_device",
-		    &dp->d_hba_device, 2))
+		else if (g_handleattr_uint16_t(bp, "GEOM::hba_device",
+		    dp->d_hba_device))
 			break;
-		else if (g_handleattr(bp, "GEOM::hba_subvendor",
-		    &dp->d_hba_subvendor, 2))
+		else if (g_handleattr_uint16_t(bp, "GEOM::hba_subvendor",
+		    dp->d_hba_subvendor))
 			break;
-		else if (g_handleattr(bp, "GEOM::hba_subdevice",
-		    &dp->d_hba_subdevice, 2))
+		else if (g_handleattr_uint16_t(bp, "GEOM::hba_subdevice",
+		    dp->d_hba_subdevice))
 			break;
 		else if (!strcmp(bp->bio_attribute, "GEOM::kerneldump"))
 			g_disk_kerneldump(bp, dp);
 		else if (!strcmp(bp->bio_attribute, "GEOM::setstate"))
 			g_disk_setstate(bp, sc);
-		else 
+		else if (!strcmp(bp->bio_attribute, "GEOM::rotation_rate")) {
+			uint64_t v;
+
+			if ((dp->d_flags & DISKFLAG_LACKS_ROTRATE) == 0)
+				v = dp->d_rotation_rate;
+			else
+				v = 0; /* rate unknown */
+			g_handleattr_uint16_t(bp, "GEOM::rotation_rate", v);
+			break;
+		} else 
 			error = ENOIOCTL;
 		break;
 	case BIO_FLUSH:
@@ -438,14 +416,18 @@ g_disk_start(struct bio *bp)
 			error = EOPNOTSUPP;
 			break;
 		}
-		bp->bio_disk = dp;
-		bp->bio_to = (void *)bp->bio_done;
-		bp->bio_done = g_disk_done_single;
-		mtx_lock(&sc->start_mtx); 
-		devstat_start_transaction_bio(dp->d_devstat, bp);
-		mtx_unlock(&sc->start_mtx); 
+		bp2 = g_clone_bio(bp);
+		if (bp2 == NULL) {
+			g_io_deliver(bp, ENOMEM);
+			return;
+		}
+		bp2->bio_done = g_disk_done;
+		bp2->bio_disk = dp;
+		mtx_lock(&sc->start_mtx);
+		devstat_start_transaction_bio(dp->d_devstat, bp2);
+		mtx_unlock(&sc->start_mtx);
 		g_disk_lock_giant(dp);
-		dp->d_strategy(bp);
+		dp->d_strategy(bp2);
 		g_disk_unlock_giant(dp);
 		break;
 	default:
@@ -694,6 +676,8 @@ disk_create(struct disk *dp, int version)
 		    dp->d_name, dp->d_unit);
 		return;
 	}
+	if (version < DISK_VERSION_04)
+		dp->d_flags |= DISKFLAG_LACKS_ROTRATE;
 	KASSERT(dp->d_strategy != NULL, ("disk_create need d_strategy"));
 	KASSERT(dp->d_name != NULL, ("disk_create need d_name"));
 	KASSERT(*dp->d_name != 0, ("disk_create need d_name"));

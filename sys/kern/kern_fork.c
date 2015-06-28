@@ -40,6 +40,7 @@ __FBSDID("$FreeBSD$");
 #include "opt_kdtrace.h"
 #include "opt_ktrace.h"
 #include "opt_kstack_pages.h"
+#include "opt_pax.h"
 #include "opt_procdesc.h"
 
 #include <sys/param.h>
@@ -55,6 +56,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/pax.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/procdesc.h>
@@ -189,8 +191,9 @@ SYSCTL_INT(_kern, OID_AUTO, lastpid, CTLFLAG_RD, &lastpid, 0,
  * modulus that is too big causes a LOT more process table scans and slows
  * down fork processing as the pidchecked caching is defeated.
  */
-static int randompid = 0;
+int randompid = 0;
 
+#ifndef PAX_HARDENING
 static int
 sysctl_kern_randompid(SYSCTL_HANDLER_ARGS)
 {
@@ -217,6 +220,10 @@ sysctl_kern_randompid(SYSCTL_HANDLER_ARGS)
 
 SYSCTL_PROC(_kern, OID_AUTO, randompid, CTLTYPE_INT|CTLFLAG_RW,
     0, 0, sysctl_kern_randompid, "I", "Random PID modulus");
+#else
+SYSCTL_INT(_kern, OID_AUTO, randompid, CTLFLAG_RD, &randompid, 0,
+    "Random PID modulus");
+#endif
 
 static int
 fork_findpid(int flags)
@@ -267,11 +274,21 @@ retry:
 		 * Scan the active and zombie procs to check whether this pid
 		 * is in use.  Remember the lowest pid that's greater
 		 * than trypid, so we can avoid checking for a while.
+		 *
+		 * Avoid reuse of the process group id, session id or
+		 * the reaper subtree id.  Note that for process group
+		 * and sessions, the amount of reserved pids is
+		 * limited by process limit.  For the subtree ids, the
+		 * id is kept reserved only while there is a
+		 * non-reaped process in the subtree, so amount of
+		 * reserved pids is limited by process limit times
+		 * two.
 		 */
 		p = LIST_FIRST(&allproc);
 again:
 		for (; p != NULL; p = LIST_NEXT(p, p_list)) {
 			while (p->p_pid == trypid ||
+			    p->p_reapsubtree == trypid ||
 			    (p->p_pgrp != NULL &&
 			    (p->p_pgrp->pg_id == trypid ||
 			    (p->p_session != NULL &&
@@ -323,7 +340,7 @@ fork_norfproc(struct thread *td, int flags)
 	if (((p1->p_flag & (P_HADTHREADS|P_SYSTEM)) == P_HADTHREADS) &&
 	    (flags & (RFCFDG | RFFDG))) {
 		PROC_LOCK(p1);
-		if (thread_single(SINGLE_BOUNDARY)) {
+		if (thread_single(p1, SINGLE_BOUNDARY)) {
 			PROC_UNLOCK(p1);
 			return (ERESTART);
 		}
@@ -354,7 +371,7 @@ fail:
 	if (((p1->p_flag & (P_HADTHREADS|P_SYSTEM)) == P_HADTHREADS) &&
 	    (flags & (RFCFDG | RFFDG))) {
 		PROC_LOCK(p1);
-		thread_single_end();
+		thread_single_end(p1, SINGLE_BOUNDARY);
 		PROC_UNLOCK(p1);
 	}
 	return (error);
@@ -390,6 +407,7 @@ do_fork(struct thread *td, int flags, struct proc *p2, struct thread *td2,
 	p2->p_pid = trypid;
 	AUDIT_ARG_PID(p2->p_pid);
 	LIST_INSERT_HEAD(&allproc, p2, p_list);
+	allproc_gen++;
 	LIST_INSERT_HEAD(PIDHASH(p2->p_pid), p2, p_hash);
 	tidhash_add(td2);
 	PROC_LOCK(p2);
@@ -464,11 +482,13 @@ do_fork(struct thread *td, int flags, struct proc *p2, struct thread *td2,
 
 	bzero(&td2->td_startzero,
 	    __rangeof(struct thread, td_startzero, td_endzero));
+	td2->td_su = NULL;
 
 	bcopy(&td->td_startcopy, &td2->td_startcopy,
 	    __rangeof(struct thread, td_startcopy, td_endcopy));
 
 	bcopy(&p2->p_comm, &td2->td_name, sizeof(td2->td_name));
+	td2->td_pax = p2->p_pax;
 	td2->td_sigstk = td->td_sigstk;
 	td2->td_flags = TDF_INMEM;
 	td2->td_lend_user_pri = PRI_MAX;
@@ -490,7 +510,7 @@ do_fork(struct thread *td, int flags, struct proc *p2, struct thread *td2,
 	 * Increase reference counts on shared objects.
 	 */
 	p2->p_flag = P_INMEM;
-	p2->p_flag2 = 0;
+	p2->p_flag2 = p1->p_flag2 & (P2_NOTRACE | P2_NOTRACE_EXEC);
 	p2->p_swtick = ticks;
 	if (p1->p_flag & P_PROFIL)
 		startprofclock(p2);
@@ -617,12 +637,22 @@ do_fork(struct thread *td, int flags, struct proc *p2, struct thread *td2,
 	 * of init.  This effectively disassociates the child from the
 	 * parent.
 	 */
-	if (flags & RFNOWAIT)
-		pptr = initproc;
-	else
+	if ((flags & RFNOWAIT) != 0) {
+		pptr = p1->p_reaper;
+		p2->p_reaper = pptr;
+	} else {
+		p2->p_reaper = (p1->p_treeflag & P_TREE_REAPER) != 0 ?
+		    p1 : p1->p_reaper;
 		pptr = p1;
+	}
 	p2->p_pptr = pptr;
 	LIST_INSERT_HEAD(&pptr->p_children, p2, p_sibling);
+	LIST_INIT(&p2->p_reaplist);
+	LIST_INSERT_HEAD(&p2->p_reaper->p_reaplist, p2, p_reapsibling);
+	if (p2->p_reaper == p1)
+		p2->p_reapsubtree = p2->p_pid;
+	else
+		p2->p_reapsubtree = p1->p_reapsubtree;		
 	sx_xunlock(&proctree_lock);
 
 	/* Inform accounting that we have forked. */
@@ -762,6 +792,15 @@ fork1(struct thread *td, int flags, int pages, struct proc **procp,
 	static struct timeval lastfail;
 #ifdef PROCDESC
 	struct file *fp_procdesc = NULL;
+#endif
+
+#ifdef PAX_SEGVGUARD
+	if (td->td_proc->p_pid != 0) {
+		error = pax_segvguard_check(curthread, curthread->td_proc->p_textvp,
+				td->td_proc->p_comm);
+		if (error)
+			return (error);
+	}
 #endif
 
 	/* Check for the undefined or unimplemented flags. */
@@ -1034,6 +1073,9 @@ fork_return(struct thread *td, struct trapframe *frame)
 			dbg = p->p_pptr->p_pptr;
 			p->p_flag |= P_TRACED;
 			p->p_oppid = p->p_pptr->p_pid;
+			CTR2(KTR_PTRACE,
+		    "fork_return: attaching to new child pid %d: oppid %d",
+			    p->p_pid, p->p_oppid);
 			proc_reparent(p, dbg);
 			sx_xunlock(&proctree_lock);
 			td->td_dbgflags |= TDB_CHILD;

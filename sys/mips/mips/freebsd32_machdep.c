@@ -31,6 +31,7 @@
  */
 
 #include "opt_compat.h"
+#include "opt_pax.h"
 
 #define __ELF_WORD_SIZE 32
 
@@ -42,6 +43,7 @@
 #include <sys/exec.h>
 #include <sys/imgact.h>
 #include <sys/malloc.h>
+#include <sys/pax.h>
 #include <sys/proc.h>
 #include <sys/namei.h>
 #include <sys/fcntl.h>
@@ -68,7 +70,7 @@
 
 static void freebsd32_exec_setregs(struct thread *, struct image_params *, u_long);
 static int get_mcontext32(struct thread *, mcontext32_t *, int);
-static int set_mcontext32(struct thread *, const mcontext32_t *);
+static int set_mcontext32(struct thread *, mcontext32_t *);
 static void freebsd32_sendsig(sig_t, ksiginfo_t *, sigset_t *);
 
 extern const char *freebsd32_syscallnames[];
@@ -106,6 +108,7 @@ struct sysentvec elf32_freebsd_sysvec = {
 	.sv_fetch_syscall_args = cpu_fetch_syscall_args,
 	.sv_syscallnames = freebsd32_syscallnames,
 	.sv_schedtail	= NULL,
+	.sv_pax_aslr_init = pax_aslr_init_vmspace32,
 };
 INIT_SYSENTVEC(elf32_sysvec, &elf32_freebsd_sysvec);
 
@@ -227,7 +230,7 @@ get_mcontext32(struct thread *td, mcontext32_t *mcp, int flags)
 }
 
 static int
-set_mcontext32(struct thread *td, const mcontext32_t *mcp)
+set_mcontext32(struct thread *td, mcontext32_t *mcp)
 {
 	mcontext_t mcp64;
 	unsigned i;

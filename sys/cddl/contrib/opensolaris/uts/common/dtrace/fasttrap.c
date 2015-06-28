@@ -295,7 +295,7 @@ fasttrap_sigtrap(proc_t *p, kthread_t *t, uintptr_t pc)
 	ksi->ksi_code = TRAP_DTRACE;
 	ksi->ksi_addr = (caddr_t)pc;
 	PROC_LOCK(p);
-	(void) tdksignal(t, SIGTRAP, ksi);
+	(void) tdsendsignal(p, t, SIGTRAP, ksi);
 	PROC_UNLOCK(p);
 #endif
 }
@@ -1296,8 +1296,13 @@ fasttrap_pid_disable(void *arg, dtrace_id_t id, void *parg)
 	 */
 	if ((p = pfind(probe->ftp_pid)) != NULL) {
 #ifdef __FreeBSD__
-		_PHOLD(p);
-		PROC_UNLOCK(p);
+		if (p->p_flag & P_WEXIT) {
+			PROC_UNLOCK(p);
+			p = NULL;
+		} else {
+			_PHOLD(p);
+			PROC_UNLOCK(p);
+		}
 #endif
 	}
 
@@ -1467,7 +1472,7 @@ fasttrap_proc_lookup(pid_t pid)
 			mutex_enter(&fprc->ftpc_mtx);
 			mutex_exit(&bucket->ftb_mtx);
 			fprc->ftpc_rcount++;
-			atomic_add_64(&fprc->ftpc_acount, 1);
+			atomic_inc_64(&fprc->ftpc_acount);
 			ASSERT(fprc->ftpc_acount <= fprc->ftpc_rcount);
 			mutex_exit(&fprc->ftpc_mtx);
 
@@ -1501,7 +1506,7 @@ fasttrap_proc_lookup(pid_t pid)
 			mutex_enter(&fprc->ftpc_mtx);
 			mutex_exit(&bucket->ftb_mtx);
 			fprc->ftpc_rcount++;
-			atomic_add_64(&fprc->ftpc_acount, 1);
+			atomic_inc_64(&fprc->ftpc_acount);
 			ASSERT(fprc->ftpc_acount <= fprc->ftpc_rcount);
 			mutex_exit(&fprc->ftpc_mtx);
 
@@ -1738,7 +1743,7 @@ fasttrap_provider_free(fasttrap_provider_t *provider)
 	 * count of active providers on the associated process structure.
 	 */
 	if (!provider->ftp_retired) {
-		atomic_add_64(&provider->ftp_proc->ftpc_acount, -1);
+		atomic_dec_64(&provider->ftp_proc->ftpc_acount);
 		ASSERT(provider->ftp_proc->ftpc_acount <
 		    provider->ftp_proc->ftpc_rcount);
 	}
@@ -1814,7 +1819,7 @@ fasttrap_provider_retire(pid_t pid, const char *name, int mprov)
 	 * bucket lock therefore protects the integrity of the provider hash
 	 * table.
 	 */
-	atomic_add_64(&fp->ftp_proc->ftpc_acount, -1);
+	atomic_dec_64(&fp->ftp_proc->ftpc_acount);
 	ASSERT(fp->ftp_proc->ftpc_acount < fp->ftp_proc->ftpc_rcount);
 
 	fp->ftp_retired = 1;
@@ -1910,10 +1915,10 @@ fasttrap_add_probe(fasttrap_probe_spec_t *pdata)
 			    pdata->ftps_mod, pdata->ftps_func, name_str) != 0)
 				continue;
 
-			atomic_add_32(&fasttrap_total, 1);
+			atomic_inc_32(&fasttrap_total);
 
 			if (fasttrap_total > fasttrap_max) {
-				atomic_add_32(&fasttrap_total, -1);
+				atomic_dec_32(&fasttrap_total);
 				goto no_mem;
 			}
 
@@ -2479,7 +2484,7 @@ fasttrap_load(void)
 	if (nent == 0 || nent > 0x1000000)
 		nent = FASTTRAP_TPOINTS_DEFAULT_SIZE;
 
-	if ((nent & (nent - 1)) == 0)
+	if (ISP2(nent))
 		fasttrap_tpoints.fth_nent = nent;
 	else
 		fasttrap_tpoints.fth_nent = 1 << fasttrap_highbit(nent);
@@ -2497,7 +2502,7 @@ fasttrap_load(void)
 	 * ... and the providers hash table...
 	 */
 	nent = FASTTRAP_PROVIDERS_DEFAULT_SIZE;
-	if ((nent & (nent - 1)) == 0)
+	if (ISP2(nent))
 		fasttrap_provs.fth_nent = nent;
 	else
 		fasttrap_provs.fth_nent = 1 << fasttrap_highbit(nent);
@@ -2533,7 +2538,7 @@ fasttrap_load(void)
 	 * ... and the procs hash table.
 	 */
 	nent = FASTTRAP_PROCS_DEFAULT_SIZE;
-	if ((nent & (nent - 1)) == 0)
+	if (ISP2(nent))
 		fasttrap_procs.fth_nent = nent;
 	else
 		fasttrap_procs.fth_nent = 1 << fasttrap_highbit(nent);

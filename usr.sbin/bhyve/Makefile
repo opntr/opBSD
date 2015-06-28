@@ -31,7 +31,6 @@ SRCS=	\
 	pci_virtio_rnd.c	\
 	pci_uart.c		\
 	pm.c			\
-	pmtmr.c			\
 	post.c			\
 	rtc.c			\
 	smbiostbl.c		\
@@ -46,6 +45,7 @@ SRCS+=	vmm_instruction_emul.c
 
 DPADD=	${LIBVMMAPI} ${LIBMD} ${LIBUTIL} ${LIBPTHREAD}
 LDADD=	-lvmmapi -lmd -lutil -lpthread
+WANTS_PIE=	yes
 
 WARNS?=	2
 

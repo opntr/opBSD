@@ -10,6 +10,14 @@
 CFLAGS+=${COPTS}
 .endif
 
+.if defined(WANTS_PIE)
+.if ${MK_PIE} != "no"
+CFLAGS+= -fPIE
+CXXFLAGS+= -fPIE
+LDFLAGS+= -pie
+.endif
+.endif
+
 .if ${MK_ASSERT_DEBUG} == "no"
 CFLAGS+= -DNDEBUG
 NO_WERROR=
@@ -28,9 +36,7 @@ CTFFLAGS+= -g
 PROG=	${PROG_CXX}
 .endif
 
-.if defined(PROG) && target(${PROG})
-MK_DEBUG_FILES=	no
-.elif !empty(LDFLAGS:M-Wl,*--oformat,*) || !empty(LDFLAGS:M-static)
+.if !empty(LDFLAGS:M-Wl,*--oformat,*) || !empty(LDFLAGS:M-static)
 MK_DEBUG_FILES=	no
 .endif
 
@@ -169,15 +175,15 @@ CLEANFILES+= ${OBJS}
 _EXTRADEPEND:
 .if defined(LDFLAGS) && !empty(LDFLAGS:M-nostdlib)
 .if defined(DPADD) && !empty(DPADD)
-	echo ${PROG}: ${DPADD} >> ${DEPENDFILE}
+	echo ${PROG_FULL}: ${DPADD} >> ${DEPENDFILE}
 .endif
 .else
-	echo ${PROG}: ${LIBC} ${DPADD} >> ${DEPENDFILE}
+	echo ${PROG_FULL}: ${LIBC} ${DPADD} >> ${DEPENDFILE}
 .if defined(PROG_CXX)
 .if ${MK_CLANG_IS_CC} != "no" && empty(CXXFLAGS:M-stdlib=libstdc++)
-	echo ${PROG}: ${LIBCPLUSPLUS} >> ${DEPENDFILE}
+	echo ${PROG_FULL}: ${LIBCPLUSPLUS} >> ${DEPENDFILE}
 .else
-	echo ${PROG}: ${LIBSTDCPLUSPLUS} >> ${DEPENDFILE}
+	echo ${PROG_FULL}: ${LIBSTDCPLUSPLUS} >> ${DEPENDFILE}
 .endif
 .endif
 .endif

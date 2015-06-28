@@ -5,10 +5,11 @@
 PROG=	bhyvectl
 SRCS=	bhyvectl.c
 
-NO_MAN=
+MAN=
 
 DPADD=	${LIBVMMAPI} ${LIBUTIL}
 LDADD=	-lvmmapi -lutil
+WANTS_PIE=	yes
 
 WARNS?=	3
 

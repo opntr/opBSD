@@ -35,7 +35,6 @@ SUBDIR=	\
 	${_amdtemp} \
 	amr \
 	${_an} \
-	${_aout} \
 	${_apm} \
 	${_arcmsr} \
 	${_arcnet} \
@@ -44,7 +43,7 @@ SUBDIR=	\
 	ata \
 	ath \
 	ath_pci \
-	autofs \
+	${_autofs} \
 	${_auxio} \
 	${_bce} \
 	bfe \
@@ -71,7 +70,6 @@ SUBDIR=	\
 	${_ciss} \
 	${_cm} \
 	${_cmx} \
-	${_coff} \
 	${_coretemp} \
 	${_cp} \
 	${_cpsw} \
@@ -85,7 +83,6 @@ SUBDIR=	\
 	ctl \
 	${_cxgb} \
 	${_cxgbe} \
-	${_cyclic} \
 	dc \
 	dcons \
 	dcons_crom \
@@ -132,7 +129,6 @@ SUBDIR=	\
 	${_hyperv} \
 	${_i2c} \
         ${_ibcore} \
-	${_ibcs2} \
 	${_ichwd} \
 	${_ida} \
 	${_ie} \
@@ -142,14 +138,16 @@ SUBDIR=	\
 	if_ef \
 	if_epair \
 	if_faith \
-	if_gif \
+	${_if_gif} \
 	${_if_gre} \
+	${_if_me} \
 	if_lagg \
 	${_if_ndis} \
 	if_stf \
 	if_tap \
 	if_tun \
 	if_vlan \
+	if_vxlan \
 	${_igb} \
 	${_iir} \
 	${_imgact_binmisc} \
@@ -166,14 +164,14 @@ SUBDIR=	\
 	${_ipw} \
 	${_ipwfw} \
 	${_isci} \
-	iscsi \
-	iscsi_initiator \
 	isp \
 	${_ispfw} \
 	${_iwi} \
 	${_iwifw} \
 	${_iwn} \
 	${_iwnfw} \
+	${_ix} \
+	${_ixv} \
 	${_ixgb} \
 	${_ixgbe} \
 	${_ixl} \
@@ -325,8 +323,6 @@ SUBDIR=	\
 	ste \
 	${_stg} \
 	stge \
-	${_streams} \
-	${_svr4} \
 	${_sym} \
 	${_syscons} \
 	sysvipc \
@@ -402,8 +398,14 @@ _cxgb=		cxgb
 .endif
 .endif
 
-.if ${MK_SOURCELESS_UCODE} != "no"
+.if ${MK_SOURCELESS_UCODE} != "no" && ${MACHINE_CPUARCH} != "arm" && \
+	${MACHINE_ARCH:C/mips(el)?/mips/} != "mips" && \
+	${MACHINE_ARCH} != "powerpc"
 _cxgbe=		cxgbe
+.endif
+
+.if ${MK_AUTOFS} != "no" || defined(ALL_MODULES)
+_autofs=	autofs
 .endif
 
 .if ${MK_CRYPT} != "no" || defined(ALL_MODULES)
@@ -420,10 +422,12 @@ _random=	random
 	defined(ALL_MODULES)
 _carp=	carp
 _toecore=	toecore
+_if_gif=	if_gif
+_if_gre=	if_gre
 .endif
 
 .if ${MK_INET_SUPPORT} != "no" || defined(ALL_MODULES)
-_if_gre=	if_gre
+_if_me=		if_me
 .endif
 
 .if ${MK_IPFILTER} != "no" || defined(ALL_MODULES)
@@ -433,6 +437,11 @@ _ipfilter=	ipfilter
 .if ${MK_INET_SUPPORT} != "no" || defined(ALL_MODULES)
 _ipdivert=	ipdivert
 _ipfw=		ipfw
+.endif
+
+.if ${MK_ISCSI} != "no" || defined(ALL_MODULES)
+SUBDIR+=	iscsi
+SUBDIR+=	iscsi_initiator
 .endif
 
 .if ${MK_NAND} != "no" || defined(ALL_MODULES)
@@ -474,7 +483,6 @@ _3dfx_linux=	3dfx_linux
 _agp=		agp
 _aic=		aic
 _an=		an
-_aout=		aout
 _apm=		apm
 _arcnet=	arcnet
 _bktr=		bktr
@@ -484,16 +492,12 @@ _cbb=		cbb
 .if ${MK_SOURCELESS_UCODE} != "no"
 _ce=		ce
 .endif
-_coff=		coff
 .if ${MK_SOURCELESS_UCODE} != "no"
 _cp=		cp
 .endif
 _cpuctl=	cpuctl
 _cpufreq=	cpufreq
 _cs=		cs
-.if ${MK_CDDL} != "no" || defined(ALL_MODULES)
-_cyclic=	cyclic
-.endif
 _dpms=		dpms
 _drm=		drm
 _drm2=		drm2
@@ -514,7 +518,6 @@ _i2c=		i2c
 .if ${MK_OFED} != "no" || defined(ALL_MODULES)
 _ibcore=        ibcore
 .endif
-_ibcs2=		ibcs2
 _ie=		ie
 _if_ndis=	if_ndis
 _igb=		igb
@@ -612,6 +615,8 @@ _iwn=		iwn
 .if ${MK_SOURCELESS_UCODE} != "no"
 _iwnfw=		iwnfw
 .endif
+_ix=		ix
+_ixv=		ixv
 _ixgb=		ixgb
 _ixgbe=		ixgbe
 _mly=		mly
@@ -669,9 +674,6 @@ _ciss=		ciss
 _coretemp=	coretemp
 _cpuctl=	cpuctl
 _cpufreq=	cpufreq
-.if ${MK_CDDL} != "no" || defined(ALL_MODULES)
-_cyclic=	cyclic
-.endif
 _dpms=		dpms
 _drm=		drm
 _drm2=		drm2
@@ -721,6 +723,8 @@ _iwn=		iwn
 .if ${MK_SOURCELESS_UCODE} != "no"
 _iwnfw=		iwnfw
 .endif
+_ix=		ix
+_ixv=		ixv
 _ixgb=		ixgb
 _ixgbe=		ixgbe
 _ixl=		ixl
@@ -771,7 +775,9 @@ _twa=		twa
 _vesa=		vesa
 _viawd=		viawd
 _virtio=	virtio
+.if ${MK_BHYVE} != "no" || defined(ALL_MODULES)
 _vmm=		vmm
+.endif
 _vxge=  	vxge
 _x86bios=	x86bios
 _wbwd=		wbwd
@@ -838,9 +844,6 @@ _cardbus=	cardbus
 _cbb=		cbb
 _cfi=		cfi
 _cpufreq=	cpufreq
-.if ${MK_CDDL} != "no" || defined(ALL_MODULES)
-_cyclic=	cyclic
-.endif
 _drm=		drm
 .if ${MK_CDDL} != "no" || defined(ALL_MODULES)
 _dtrace=	dtrace
@@ -857,6 +860,8 @@ _wi=		wi
 .endif
 
 .if ${MACHINE_ARCH} == "powerpc64"
+_drm2=		drm2
+_i2c=		i2c
 .if ${MK_ZFS} != "no" || defined(ALL_MODULES)
 _zfs=		zfs
 .endif
@@ -881,6 +886,8 @@ _zfs=		zfs
 .if defined(MODULES_OVERRIDE) && !defined(ALL_MODULES)
 SUBDIR=${MODULES_OVERRIDE}
 .endif
+
+SUBDIR+=${MODULES_EXTRA}
 
 .for reject in ${WITHOUT_MODULES}
 SUBDIR:= ${SUBDIR:N${reject}}

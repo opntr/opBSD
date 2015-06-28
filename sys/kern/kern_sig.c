@@ -41,6 +41,7 @@ __FBSDID("$FreeBSD$");
 #include "opt_kdtrace.h"
 #include "opt_ktrace.h"
 #include "opt_core.h"
+#include "opt_pax.h"
 #include "opt_procdesc.h"
 
 #include <sys/param.h>
@@ -48,7 +49,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/signalvar.h>
 #include <sys/vnode.h>
 #include <sys/acct.h>
-#include <sys/capability.h>
+#include <sys/capsicum.h>
 #include <sys/condvar.h>
 #include <sys/event.h>
 #include <sys/fcntl.h>
@@ -61,6 +62,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/mutex.h>
 #include <sys/refcount.h>
 #include <sys/namei.h>
+#include <sys/pax.h>
 #include <sys/proc.h>
 #include <sys/procdesc.h>
 #include <sys/posix4.h>
@@ -658,9 +660,10 @@ kern_sigaction(td, sig, act, oact, flags)
 
 	if (!_SIG_VALID(sig))
 		return (EINVAL);
-	if (act != NULL && (act->sa_flags & ~(SA_ONSTACK | SA_RESTART |
-	    SA_RESETHAND | SA_NOCLDSTOP | SA_NODEFER | SA_NOCLDWAIT |
-	    SA_SIGINFO)) != 0)
+	if (act != NULL && act->sa_handler != SIG_DFL &&
+	    act->sa_handler != SIG_IGN && (act->sa_flags & ~(SA_ONSTACK |
+	    SA_RESTART | SA_RESETHAND | SA_NOCLDSTOP | SA_NODEFER |
+	    SA_NOCLDWAIT | SA_SIGINFO)) != 0)
 		return (EINVAL);
 
 	PROC_LOCK(p);
@@ -1003,8 +1006,12 @@ kern_sigprocmask(struct thread *td, int how, sigset_t *set, sigset_t *oset,
 	int error;
 
 	p = td->td_proc;
-	if (!(flags & SIGPROCMASK_PROC_LOCKED))
+	if ((flags & SIGPROCMASK_PROC_LOCKED) != 0)
+		PROC_LOCK_ASSERT(p, MA_OWNED);
+	else
 		PROC_LOCK(p);
+	mtx_assert(&p->p_sigacts->ps_mtx, (flags & SIGPROCMASK_PS_LOCKED) != 0
+	    ? MA_OWNED : MA_NOTOWNED);
 	if (oset != NULL)
 		*oset = td->td_sigmask;
 
@@ -1891,6 +1898,30 @@ pgsignal(struct pgrp *pgrp, int sig, int checkctty, ksiginfo_t *ksi)
 	}
 }
 
+
+/*
+ * Recalculate the signal mask and reset the signal disposition after
+ * usermode frame for delivery is formed.  Should be called after
+ * mach-specific routine, because sysent->sv_sendsig() needs correct
+ * ps_siginfo and signal mask.
+ */
+static void
+postsig_done(int sig, struct thread *td, struct sigacts *ps)
+{
+	sigset_t mask;
+
+	mtx_assert(&ps->ps_mtx, MA_OWNED);
+	td->td_ru.ru_nsignals++;
+	mask = ps->ps_catchmask[_SIG_IDX(sig)];
+	if (!SIGISMEMBER(ps->ps_signodefer, sig))
+		SIGADDSET(mask, sig);
+	kern_sigprocmask(td, SIG_BLOCK, &mask, NULL,
+	    SIGPROCMASK_PROC_LOCKED | SIGPROCMASK_PS_LOCKED);
+	if (SIGISMEMBER(ps->ps_sigreset, sig))
+		sigdflt(ps, sig);
+}
+
+
 /*
  * Send a signal caused by a trap to the current thread.  If it will be
  * caught immediately, deliver it with correct code.  Otherwise, post it
@@ -1900,7 +1931,6 @@ void
 trapsignal(struct thread *td, ksiginfo_t *ksi)
 {
 	struct sigacts *ps;
-	sigset_t mask;
 	struct proc *p;
 	int sig;
 	int code;
@@ -1915,7 +1945,6 @@ trapsignal(struct thread *td, ksiginfo_t *ksi)
 	mtx_lock(&ps->ps_mtx);
 	if ((p->p_flag & P_TRACED) == 0 && SIGISMEMBER(ps->ps_sigcatch, sig) &&
 	    !SIGISMEMBER(td->td_sigmask, sig)) {
-		td->td_ru.ru_nsignals++;
 #ifdef KTRACE
 		if (KTRPOINT(curthread, KTR_PSIG))
 			ktrpsig(sig, ps->ps_sigact[_SIG_IDX(sig)],
@@ -1923,13 +1952,7 @@ trapsignal(struct thread *td, ksiginfo_t *ksi)
 #endif
 		(*p->p_sysent->sv_sendsig)(ps->ps_sigact[_SIG_IDX(sig)],
 				ksi, &td->td_sigmask);
-		mask = ps->ps_catchmask[_SIG_IDX(sig)];
-		if (!SIGISMEMBER(ps->ps_signodefer, sig))
-			SIGADDSET(mask, sig);
-		kern_sigprocmask(td, SIG_BLOCK, &mask, NULL,
-		    SIGPROCMASK_PROC_LOCKED | SIGPROCMASK_PS_LOCKED);
-		if (SIGISMEMBER(ps->ps_sigreset, sig))
-			sigdflt(ps, sig);
+		postsig_done(sig, td, ps);
 		mtx_unlock(&ps->ps_mtx);
 	} else {
 		/*
@@ -2350,9 +2373,12 @@ tdsigwakeup(struct thread *td, int sig, sig_t action, int intrval)
 	thread_lock(td);
 	/*
 	 * Bring the priority of a thread up if we want it to get
-	 * killed in this lifetime.
+	 * killed in this lifetime.  Be careful to avoid bumping the
+	 * priority of the idle thread, since we still allow to signal
+	 * kernel processes.
 	 */
-	if (action == SIG_DFL && (prop & SA_KILL) && td->td_priority > PUSER)
+	if (action == SIG_DFL && (prop & SA_KILL) != 0 &&
+	    td->td_priority > PUSER && !TD_IS_IDLETHREAD(td))
 		sched_prio(td, PUSER);
 	if (TD_ON_SLEEPQ(td)) {
 		/*
@@ -2390,7 +2416,7 @@ tdsigwakeup(struct thread *td, int sig, sig_t action, int intrval)
 		/*
 		 * Give low priority threads a better chance to run.
 		 */
-		if (td->td_priority > PUSER)
+		if (td->td_priority > PUSER && !TD_IS_IDLETHREAD(td))
 			sched_prio(td, PUSER);
 
 		wakeup_swapper = sleepq_abort(td, intrval);
@@ -2460,6 +2486,8 @@ ptracestop(struct thread *td, int sig)
 
 	td->td_dbgflags |= TDB_XSIG;
 	td->td_xsig = sig;
+	CTR4(KTR_PTRACE, "ptracestop: tid %d (pid %d) flags %#x sig %d",
+	    td->td_tid, p->p_pid, td->td_dbgflags, sig);
 	PROC_SLOCK(p);
 	while ((p->p_flag & P_TRACED) && (td->td_dbgflags & TDB_XSIG)) {
 		if (p->p_flag & P_SINGLE_EXIT) {
@@ -2480,7 +2508,7 @@ ptracestop(struct thread *td, int sig)
 			cv_broadcast(&p->p_dbgwait);
 		}
 stopme:
-		thread_suspend_switch(td);
+		thread_suspend_switch(td, p);
 		if (p->p_xthread == td)
 			p->p_xthread = NULL;
 		if (!(p->p_flag & P_TRACED))
@@ -2503,9 +2531,11 @@ reschedule_signals(struct proc *p, sigset_t block, int flags)
 	int sig;
 
 	PROC_LOCK_ASSERT(p, MA_OWNED);
+	ps = p->p_sigacts;
+	mtx_assert(&ps->ps_mtx, (flags & SIGPROCMASK_PS_LOCKED) != 0 ?
+	    MA_OWNED : MA_NOTOWNED);
 	if (SIGISEMPTY(p->p_siglist))
 		return;
-	ps = p->p_sigacts;
 	SIGSETAND(block, p->p_siglist);
 	while ((sig = sig_ffs(&block)) != 0) {
 		SIGDELSET(block, sig);
@@ -2573,15 +2603,18 @@ sigdeferstop(void)
  * not immediately suspend if a stop was posted.  Instead, the thread
  * will suspend either via ast() or a subsequent interruptible sleep.
  */
-void
-sigallowstop()
+int
+sigallowstop(void)
 {
 	struct thread *td;
+	int prev;
 
 	td = curthread;
 	thread_lock(td);
+	prev = (td->td_flags & TDF_SBDRY) != 0;
 	td->td_flags &= ~TDF_SBDRY;
 	thread_unlock(td);
+	return (prev);
 }
 
 /*
@@ -2739,7 +2772,7 @@ issignal(struct thread *td)
 				p->p_xstat = sig;
 				PROC_SLOCK(p);
 				sig_suspend_threads(td, p, 0);
-				thread_suspend_switch(td);
+				thread_suspend_switch(td, p);
 				PROC_SUNLOCK(p);
 				mtx_lock(&ps->ps_mtx);
 				break;
@@ -2811,7 +2844,7 @@ postsig(sig)
 	struct sigacts *ps;
 	sig_t action;
 	ksiginfo_t ksi;
-	sigset_t returnmask, mask;
+	sigset_t returnmask;
 
 	KASSERT(sig != 0, ("postsig"));
 
@@ -2866,20 +2899,12 @@ postsig(sig)
 		} else
 			returnmask = td->td_sigmask;
 
-		mask = ps->ps_catchmask[_SIG_IDX(sig)];
-		if (!SIGISMEMBER(ps->ps_signodefer, sig))
-			SIGADDSET(mask, sig);
-		kern_sigprocmask(td, SIG_BLOCK, &mask, NULL,
-		    SIGPROCMASK_PROC_LOCKED | SIGPROCMASK_PS_LOCKED);
-
-		if (SIGISMEMBER(ps->ps_sigreset, sig))
-			sigdflt(ps, sig);
-		td->td_ru.ru_nsignals++;
 		if (p->p_sig == sig) {
 			p->p_code = 0;
 			p->p_sig = 0;
 		}
 		(*p->p_sysent->sv_sendsig)(action, &ksi, &returnmask);
+		postsig_done(sig, td, ps);
 	}
 	return (1);
 }
@@ -2928,7 +2953,7 @@ sigexit(td, sig)
 	 * XXX If another thread attempts to single-thread before us
 	 *     (e.g. via fork()), we won't get a dump at all.
 	 */
-	if ((sigprop(sig) & SA_CORE) && (thread_single(SINGLE_NO_EXIT) == 0)) {
+	if ((sigprop(sig) & SA_CORE) && thread_single(p, SINGLE_NO_EXIT) == 0) {
 		p->p_sig = sig;
 		/*
 		 * Log signals which would cause core dumps
@@ -2946,6 +2971,9 @@ sigexit(td, sig)
 			    td->td_ucred ? td->td_ucred->cr_uid : -1,
 			    sig &~ WCOREFLAG,
 			    sig & WCOREFLAG ? " (core dumped)" : "");
+#ifdef PAX_SEGVGUARD
+		pax_segvguard_segfault(curthread, p->p_comm);
+#endif
 	} else
 		PROC_UNLOCK(p);
 	exit1(td, W_EXITCODE(0, sig));
@@ -3163,7 +3191,8 @@ corefile_open(const char *comm, uid_t uid, pid_t pid, struct thread *td,
 	sbuf_delete(&sb);
 
 	cmode = S_IRUSR | S_IWUSR;
-	oflags = VN_OPEN_NOAUDIT | (capmode_coredump ? VN_OPEN_NOCAPCHECK : 0);
+	oflags = VN_OPEN_NOAUDIT | VN_OPEN_NAMECACHE |
+	    (capmode_coredump ? VN_OPEN_NOCAPCHECK : 0);
 
 	/*
 	 * If the core format has a %I in it, then we need to check
@@ -3238,7 +3267,8 @@ coredump(struct thread *td)
 	MPASS((p->p_flag & P_HADTHREADS) == 0 || p->p_singlethread == td);
 	_STOPEVENT(p, S_CORE, 0);
 
-	if (!do_coredump || (!sugid_coredump && (p->p_flag & P_SUGID) != 0)) {
+	if (!do_coredump || (!sugid_coredump && (p->p_flag & P_SUGID) != 0) ||
+	    (p->p_flag2 & P2_NOTRACE) != 0) {
 		PROC_UNLOCK(p);
 		return (EFAULT);
 	}

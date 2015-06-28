@@ -47,6 +47,7 @@ __FBSDID("$FreeBSD$");
 #include "opt_compat.h"
 #include "opt_inet.h"
 #include "opt_inet6.h"
+#include "opt_pax.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -59,6 +60,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/mutex.h>
 #include <sys/refcount.h>
 #include <sys/sx.h>
+#include <sys/pax.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/sysproto.h>
@@ -1327,7 +1329,11 @@ securelevel_ge(struct ucred *cr, int level)
  * using a variety of system MIBs.
  * XXX: data declarations should be together near the beginning of the file.
  */
+#ifdef PAX_HARDENING
+static int	see_other_uids = 0;
+#else
 static int	see_other_uids = 1;
+#endif
 SYSCTL_INT(_security_bsd, OID_AUTO, see_other_uids, CTLFLAG_RW,
     &see_other_uids, 0,
     "Unprivileged processes may see subjects/objects with different real uid");
@@ -1357,7 +1363,11 @@ cr_seeotheruids(struct ucred *u1, struct ucred *u2)
  * using a variety of system MIBs.
  * XXX: data declarations should be together near the beginning of the file.
  */
+#ifdef PAX_HARDENING
+static int	see_other_gids = 0;
+#else
 static int	see_other_gids = 1;
+#endif
 SYSCTL_INT(_security_bsd, OID_AUTO, see_other_gids, CTLFLAG_RW,
     &see_other_gids, 0,
     "Unprivileged processes may see subjects/objects with different real gid");
@@ -1611,7 +1621,11 @@ p_cansched(struct thread *td, struct proc *p)
  * XXX: Should modifying and reading this variable require locking?
  * XXX: data declarations should be together near the beginning of the file.
  */
+#ifdef PAX_HARDENING
+static int	unprivileged_proc_debug = 0;
+#else
 static int	unprivileged_proc_debug = 1;
+#endif
 SYSCTL_INT(_security_bsd, OID_AUTO, unprivileged_proc_debug, CTLFLAG_RW,
     &unprivileged_proc_debug, 0,
     "Unprivileged processes may use process debugging facilities");
@@ -1710,6 +1724,13 @@ p_candebug(struct thread *td, struct proc *p)
 	 */
 	if ((p->p_flag & P_INEXEC) != 0)
 		return (EBUSY);
+
+	/* Denied explicitely */
+	if ((p->p_flag2 & P2_NOTRACE) != 0) {
+		error = priv_check(td, PRIV_DEBUG_DENIED);
+		if (error != 0)
+			return (error);
+	}
 
 	return (0);
 }
@@ -2073,21 +2094,20 @@ struct getlogin_args {
 int
 sys_getlogin(struct thread *td, struct getlogin_args *uap)
 {
-	int error;
 	char login[MAXLOGNAME];
 	struct proc *p = td->td_proc;
+	size_t len;
 
 	if (uap->namelen > MAXLOGNAME)
 		uap->namelen = MAXLOGNAME;
 	PROC_LOCK(p);
 	SESS_LOCK(p->p_session);
-	bcopy(p->p_session->s_login, login, uap->namelen);
+	len = strlcpy(login, p->p_session->s_login, uap->namelen) + 1;
 	SESS_UNLOCK(p->p_session);
 	PROC_UNLOCK(p);
-	if (strlen(login) + 1 > uap->namelen)
+	if (len > uap->namelen)
 		return (ERANGE);
-	error = copyout(login, uap->namebuf, uap->namelen);
-	return (error);
+	return (copyout(login, uap->namebuf, len));
 }
 
 /*
@@ -2106,21 +2126,23 @@ sys_setlogin(struct thread *td, struct setlogin_args *uap)
 	int error;
 	char logintmp[MAXLOGNAME];
 
+	CTASSERT(sizeof(p->p_session->s_login) >= sizeof(logintmp));
+
 	error = priv_check(td, PRIV_PROC_SETLOGIN);
 	if (error)
 		return (error);
 	error = copyinstr(uap->namebuf, logintmp, sizeof(logintmp), NULL);
-	if (error == ENAMETOOLONG)
-		error = EINVAL;
-	else if (!error) {
-		PROC_LOCK(p);
-		SESS_LOCK(p->p_session);
-		(void) memcpy(p->p_session->s_login, logintmp,
-		    sizeof(logintmp));
-		SESS_UNLOCK(p->p_session);
-		PROC_UNLOCK(p);
+	if (error != 0) {
+		if (error == ENAMETOOLONG)
+			error = EINVAL;
+		return (error);
 	}
-	return (error);
+	PROC_LOCK(p);
+	SESS_LOCK(p->p_session);
+	strcpy(p->p_session->s_login, logintmp);
+	SESS_UNLOCK(p->p_session);
+	PROC_UNLOCK(p);
+	return (0);
 }
 
 void

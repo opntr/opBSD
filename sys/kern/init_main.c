@@ -46,6 +46,7 @@ __FBSDID("$FreeBSD$");
 
 #include "opt_ddb.h"
 #include "opt_init_path.h"
+#include "opt_pax.h"
 
 #include <sys/param.h>
 #include <sys/kernel.h>
@@ -58,6 +59,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/loginclass.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
+#include <sys/pax.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
 #include <sys/proc.h>
@@ -410,6 +412,7 @@ struct sysentvec null_sysvec = {
 	.sv_fetch_syscall_args = null_fetch_syscall_args,
 	.sv_syscallnames = NULL,
 	.sv_schedtail	= NULL,
+	.sv_pax_aslr_init = NULL,
 };
 
 /*
@@ -476,6 +479,9 @@ proc0_init(void *dummy __unused)
 	p->p_flag = P_SYSTEM | P_INMEM;
 	p->p_flag2 = 0;
 	p->p_state = PRS_NORMAL;
+#ifdef PAX
+	p->p_pax = PAX_NOTE_ALL_DISABLED;
+#endif
 	knlist_init_mtx(&p->p_klist, &p->p_mtx);
 	STAILQ_INIT(&p->p_ktr);
 	p->p_nice = NZERO;
@@ -493,10 +499,14 @@ proc0_init(void *dummy __unused)
 	td->td_flags = TDF_INMEM;
 	td->td_pflags = TDP_KTHREAD;
 	td->td_cpuset = cpuset_thread0();
-	prison0.pr_cpuset = cpuset_ref(td->td_cpuset);
+#ifdef PAX
+	td->td_pax = PAX_NOTE_ALL_DISABLED;
+#endif
+	prison0_init();
 	p->p_peers = 0;
 	p->p_leader = p;
-
+	p->p_reaper = p;
+	LIST_INIT(&p->p_reaplist);
 
 	strncpy(p->p_comm, "kernel", sizeof (p->p_comm));
 	strncpy(td->td_name, "swapper", sizeof (td->td_name));
@@ -706,6 +716,9 @@ start_init(void *dummy)
 
 	vfs_mountroot();
 
+	/* Wipe GELI passphrase from the environment. */
+	unsetenv("kern.geom.eli.passphrase");
+
 	/*
 	 * Need just enough stack to hold the faked-up "execve()" arguments.
 	 */
@@ -821,8 +834,11 @@ create_init(const void *udata __unused)
 	KASSERT(initproc->p_pid == 1, ("create_init: initproc->p_pid != 1"));
 	/* divorce init's credentials from the kernel's */
 	newcred = crget();
+	sx_xlock(&proctree_lock);
 	PROC_LOCK(initproc);
 	initproc->p_flag |= P_SYSTEM | P_INMEM;
+	initproc->p_treeflag |= P_TREE_REAPER;
+	LIST_INSERT_HEAD(&initproc->p_reaplist, &proc0, p_reapsibling);
 	oldcred = initproc->p_ucred;
 	crcopy(newcred, oldcred);
 #ifdef MAC
@@ -833,6 +849,7 @@ create_init(const void *udata __unused)
 #endif
 	initproc->p_ucred = newcred;
 	PROC_UNLOCK(initproc);
+	sx_xunlock(&proctree_lock);
 	crfree(oldcred);
 	cred_update_thread(FIRST_THREAD_IN_PROC(initproc));
 	cpu_set_fork_handler(FIRST_THREAD_IN_PROC(initproc), start_init, NULL);

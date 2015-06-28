@@ -294,11 +294,15 @@ error:
 		usbd_enum_unlock(cpd->udev);
 
 	if (crd->is_uref) {
-		cpd->udev->refcount--;
-		cv_broadcast(&cpd->udev->ref_cv);
+		if (--(cpd->udev->refcount) == 0)
+			cv_broadcast(&cpd->udev->ref_cv);
 	}
 	mtx_unlock(&usb_ref_lock);
 	DPRINTFN(2, "fail\n");
+
+	/* clear all refs */
+	memset(crd, 0, sizeof(*crd));
+
 	return (USB_ERR_INVAL);
 }
 
@@ -362,8 +366,8 @@ usb_unref_device(struct usb_cdev_privdata *cpd,
 	}
 	if (crd->is_uref) {
 		crd->is_uref = 0;
-		cpd->udev->refcount--;
-		cv_broadcast(&cpd->udev->ref_cv);
+		if (--(cpd->udev->refcount) == 0)
+			cv_broadcast(&cpd->udev->ref_cv);
 	}
 	mtx_unlock(&usb_ref_lock);
 }
@@ -589,12 +593,12 @@ usb_fifo_free(struct usb_fifo *f)
 
 	/* decrease refcount */
 	f->refcount--;
-	/* prevent any write flush */
-	f->flag_iserror = 1;
 	/* need to wait until all callers have exited */
 	while (f->refcount != 0) {
 		mtx_unlock(&usb_ref_lock);	/* avoid LOR */
 		mtx_lock(f->priv_mtx);
+		/* prevent write flush, if any */
+		f->flag_iserror = 1;
 		/* get I/O thread out of any sleep state */
 		if (f->flag_sleeping) {
 			f->flag_sleeping = 0;
@@ -827,7 +831,8 @@ usb_fifo_close(struct usb_fifo *f, int fflags)
 			    (!f->flag_iserror)) {
 				/* wait until all data has been written */
 				f->flag_sleeping = 1;
-				err = cv_wait_sig(&f->cv_io, f->priv_mtx);
+				err = cv_timedwait_sig(&f->cv_io, f->priv_mtx,
+				    USB_MS_TO_TICKS(USB_DEFAULT_TIMEOUT));
 				if (err) {
 					DPRINTF("signal received\n");
 					break;
@@ -1094,8 +1099,8 @@ usb_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int fflag, struct thread* 
 		goto done;
 
 	if (usb_usb_ref_device(cpd, &refs)) {
-		err = ENXIO;
-		goto done;
+		/* we lost the reference */
+		return (ENXIO);
 	}
 
 	err = (f->methods->f_ioctl_post) (f, cmd, addr, fflags);
@@ -1118,9 +1123,8 @@ usb_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int fflag, struct thread* 
 
 		while (usb_ref_device(cpd, &refs, 1 /* need uref */)) {
 			if (usb_ref_device(cpd, &refs, 0)) {
-				/* device no longer exits */
-				err = ENXIO;
-				goto done;
+				/* device no longer exists */
+				return (ENXIO);
 			}
 			usb_unref_device(cpd, &refs);
 			usb_pause_mtx(NULL, hz / 128);
@@ -1412,9 +1416,9 @@ usb_read(struct cdev *dev, struct uio *uio, int ioflag)
 		return (err);
 
 	err = usb_ref_device(cpd, &refs, 0 /* no uref */ );
-	if (err) {
+	if (err)
 		return (ENXIO);
-	}
+
 	fflags = cpd->fflags;
 
 	f = refs.rxfifo;
@@ -1538,9 +1542,9 @@ usb_write(struct cdev *dev, struct uio *uio, int ioflag)
 		return (err);
 
 	err = usb_ref_device(cpd, &refs, 0 /* no uref */ );
-	if (err) {
+	if (err)
 		return (ENXIO);
-	}
+
 	fflags = cpd->fflags;
 
 	f = refs.txfifo;

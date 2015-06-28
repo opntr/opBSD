@@ -156,6 +156,13 @@ cninit(void)
 	 * Make the best console the preferred console.
 	 */
 	cnselect(best_cn);
+
+#ifdef EARLY_PRINTF
+	/*
+	 * Release early console.
+	 */
+	early_putc = NULL;
+#endif
 }
 
 void
@@ -505,6 +512,13 @@ cnputs(char *p)
 	int unlock_reqd = 0;
 
 	if (use_cnputs_mtx) {
+	  	/*
+		 * NOTE: Debug prints and/or witness printouts in
+		 * console driver clients can cause the "cnputs_mtx"
+		 * mutex to recurse. Simply return if that happens.
+		 */
+		if (mtx_owned(&cnputs_mtx))
+			return;
 		mtx_lock_spin(&cnputs_mtx);
 		unlock_reqd = 1;
 	}
@@ -652,7 +666,8 @@ sysbeep(int pitch __unused, int period __unused)
 /*
  * Temporary support for sc(4) to vt(4) transition.
  */
-static char vty_name[16] = "";
+static unsigned vty_prefer;
+static char vty_name[16];
 SYSCTL_STRING(_kern, OID_AUTO, vty, CTLFLAG_RDTUN, vty_name, 0,
     "Console vty driver");
 
@@ -676,6 +691,10 @@ vty_enabled(unsigned vty)
 				break;
 			}
 #endif
+			if (vty_prefer != 0) {
+				vty_selected = vty_prefer;
+				break;
+			}
 #if defined(DEV_SC)
 			vty_selected = VTY_SC;
 #elif defined(DEV_VT)
@@ -689,5 +708,18 @@ vty_enabled(unsigned vty)
 			strcpy(vty_name, "sc");
 	}
 	return ((vty_selected & vty) != 0);
+}
+
+void
+vty_set_preferred(unsigned vty)
+{
+
+	vty_prefer = vty;
+#if !defined(DEV_SC)
+	vty_prefer &= ~VTY_SC;
+#endif
+#if !defined(DEV_VT)
+	vty_prefer &= ~VTY_VT;
+#endif
 }
 

@@ -65,12 +65,15 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include "opt_pax.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/pax.h>
 #include <sys/proc.h>
 #include <sys/vmmeter.h>
 #include <sys/mman.h>
@@ -295,14 +298,20 @@ vmspace_alloc(vm_offset_t min, vm_offset_t max, pmap_pinit_t pinit)
 	vm->vm_taddr = 0;
 	vm->vm_daddr = 0;
 	vm->vm_maxsaddr = 0;
+#ifdef PAX_ASLR
+	vm->vm_aslr_delta_mmap = 0;
+	vm->vm_aslr_delta_stack = 0;
+	vm->vm_aslr_delta_exec = 0;
+#endif
+
 	return (vm);
 }
 
+#ifdef RACCT
 static void
 vmspace_container_reset(struct proc *p)
 {
 
-#ifdef RACCT
 	PROC_LOCK(p);
 	racct_set(p, RACCT_DATA, 0);
 	racct_set(p, RACCT_STACK, 0);
@@ -310,8 +319,8 @@ vmspace_container_reset(struct proc *p)
 	racct_set(p, RACCT_MEMLOCK, 0);
 	racct_set(p, RACCT_VMEM, 0);
 	PROC_UNLOCK(p);
-#endif
 }
+#endif
 
 static inline void
 vmspace_dofree(struct vmspace *vm)
@@ -341,6 +350,9 @@ vmspace_dofree(struct vmspace *vm)
 void
 vmspace_free(struct vmspace *vm)
 {
+
+	WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
+	    "vmspace_free() called with non-sleepable lock held");
 
 	if (vm->vm_refcnt == 0)
 		panic("vmspace_free: attempt to free already freed vmspace");
@@ -410,7 +422,10 @@ vmspace_exit(struct thread *td)
 		pmap_activate(td);
 		vmspace_dofree(vm);
 	}
-	vmspace_container_reset(p);
+#ifdef RACCT
+	if (racct_enable)
+		vmspace_container_reset(p);
+#endif
 }
 
 /* Acquire reference to vmspace owned by another process. */
@@ -1922,6 +1937,9 @@ vm_map_protect(vm_map_t map, vm_offset_t start, vm_offset_t end,
 	vm_object_t obj;
 	struct ucred *cred;
 	vm_prot_t old_prot;
+#ifdef PAX_NOEXEC
+	int ret;
+#endif
 
 	if (start == end)
 		return (KERN_SUCCESS);
@@ -2015,7 +2033,15 @@ vm_map_protect(vm_map_t map, vm_offset_t start, vm_offset_t end,
 	current = entry;
 	while ((current != &map->header) && (current->start < end)) {
 		old_prot = current->protection;
-
+#ifdef PAX_NOEXEC
+		ret = pax_mprotect_enforce(curthread->td_proc, old_prot, new_prot);
+		if (ret != 0) {
+			pax_log_mprotect(curthread->td_proc, PAX_LOG_P_COMM,
+			    "prevented to introduce new RWX page...");
+			vm_map_unlock(map);
+			return (ret);
+		}
+#endif
 		if (set_max)
 			current->protection =
 			    (current->max_protection = new_prot) &
@@ -2209,7 +2235,14 @@ vm_map_madvise(
 
 			vm_object_madvise(current->object.vm_object, pstart,
 			    pend, behav);
-			if (behav == MADV_WILLNEED) {
+
+			/*
+			 * Pre-populate paging structures in the
+			 * WILLNEED case.  For wired entries, the
+			 * paging structures are already populated.
+			 */
+			if (behav == MADV_WILLNEED &&
+			    current->wired_count == 0) {
 				vm_map_pmap_enter(map,
 				    useStart,
 				    current->protection,
@@ -3262,6 +3295,11 @@ vmspace_fork(struct vmspace *vm1, vm_ooffset_t *fork_charge)
 	vm2->vm_taddr = vm1->vm_taddr;
 	vm2->vm_daddr = vm1->vm_daddr;
 	vm2->vm_maxsaddr = vm1->vm_maxsaddr;
+#ifdef PAX_ASLR
+	vm2->vm_aslr_delta_exec = vm1->vm_aslr_delta_exec;
+	vm2->vm_aslr_delta_mmap = vm1->vm_aslr_delta_mmap;
+	vm2->vm_aslr_delta_stack = vm1->vm_aslr_delta_stack;
+#endif
 	vm_map_lock(old_map);
 	if (old_map->busy)
 		vm_map_wait_busy(old_map);
@@ -3524,7 +3562,11 @@ vm_map_stack_locked(vm_map_t map, vm_offset_t addrbos, vm_size_t max_ssize,
 	return (rv);
 }
 
+#ifdef PAX_HARDENING
+static int stack_guard_page = 1;
+#else
 static int stack_guard_page = 0;
+#endif
 TUNABLE_INT("security.bsd.stack_guard_page", &stack_guard_page);
 SYSCTL_INT(_security_bsd, OID_AUTO, stack_guard_page, CTLFLAG_RW,
     &stack_guard_page, 0,
@@ -3655,14 +3697,16 @@ Retry:
 		return (KERN_NO_SPACE);
 	}
 #ifdef RACCT
-	PROC_LOCK(p);
-	if (is_procstack &&
-	    racct_set(p, RACCT_STACK, ctob(vm->vm_ssize) + grow_amount)) {
+	if (racct_enable) {
+		PROC_LOCK(p);
+		if (is_procstack && racct_set(p, RACCT_STACK,
+		    ctob(vm->vm_ssize) + grow_amount)) {
+			PROC_UNLOCK(p);
+			vm_map_unlock_read(map);
+			return (KERN_NO_SPACE);
+		}
 		PROC_UNLOCK(p);
-		vm_map_unlock_read(map);
-		return (KERN_NO_SPACE);
 	}
-	PROC_UNLOCK(p);
 #endif
 
 	/* Round up the grow amount modulo sgrowsiz */
@@ -3688,15 +3732,17 @@ Retry:
 			goto out;
 		}
 #ifdef RACCT
-		PROC_LOCK(p);
-		if (racct_set(p, RACCT_MEMLOCK,
-		    ptoa(pmap_wired_count(map->pmap)) + grow_amount)) {
+		if (racct_enable) {
+			PROC_LOCK(p);
+			if (racct_set(p, RACCT_MEMLOCK,
+			    ptoa(pmap_wired_count(map->pmap)) + grow_amount)) {
+				PROC_UNLOCK(p);
+				vm_map_unlock_read(map);
+				rv = KERN_NO_SPACE;
+				goto out;
+			}
 			PROC_UNLOCK(p);
-			vm_map_unlock_read(map);
-			rv = KERN_NO_SPACE;
-			goto out;
 		}
-		PROC_UNLOCK(p);
 #endif
 	}
 	/* If we would blow our VMEM resource limit, no go */
@@ -3706,14 +3752,16 @@ Retry:
 		goto out;
 	}
 #ifdef RACCT
-	PROC_LOCK(p);
-	if (racct_set(p, RACCT_VMEM, map->size + grow_amount)) {
+	if (racct_enable) {
+		PROC_LOCK(p);
+		if (racct_set(p, RACCT_VMEM, map->size + grow_amount)) {
+			PROC_UNLOCK(p);
+			vm_map_unlock_read(map);
+			rv = KERN_NO_SPACE;
+			goto out;
+		}
 		PROC_UNLOCK(p);
-		vm_map_unlock_read(map);
-		rv = KERN_NO_SPACE;
-		goto out;
 	}
-	PROC_UNLOCK(p);
 #endif
 
 	if (vm_map_lock_upgrade(map))
@@ -3815,7 +3863,7 @@ Retry:
 
 out:
 #ifdef RACCT
-	if (rv != KERN_SUCCESS) {
+	if (racct_enable && rv != KERN_SUCCESS) {
 		PROC_LOCK(p);
 		error = racct_set(p, RACCT_VMEM, map->size);
 		KASSERT(error == 0, ("decreasing RACCT_VMEM failed"));

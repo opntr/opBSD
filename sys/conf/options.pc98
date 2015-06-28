@@ -18,11 +18,7 @@ POWERFAIL_NMI		opt_trap.h
 # Options for emulators.  These should only be used at config time, so
 # they are handled like options for static filesystems
 # (see src/sys/conf/options), except for broken debugging options.
-COMPAT_AOUT		opt_dontuse.h
-IBCS2			opt_dontuse.h
 COMPAT_LINUX		opt_dontuse.h
-COMPAT_SVR4		opt_dontuse.h
-DEBUG_SVR4		opt_svr4.h
 LINPROCFS		opt_dontuse.h
 LINSYSFS		opt_dontuse.h
 
@@ -30,12 +26,6 @@ LINSYSFS		opt_dontuse.h
 KVA_PAGES		opt_global.h
 
 TIMER_FREQ			opt_clock.h
-
-# options for serial support
-COM_ESP			opt_sio.h
-COM_MULTIPORT		opt_sio.h
-CONSPEED		opt_sio.h
-GDBSPEED		opt_sio.h
 
 CPU_BLUELIGHTNING_3X		opt_cpu.h
 CPU_BLUELIGHTNING_FPU_OP_CACHE	opt_cpu.h
@@ -67,7 +57,16 @@ I486_CPU		opt_global.h
 I586_CPU		opt_global.h
 I686_CPU		opt_global.h
 
+# options for serial support
+COM_ESP			opt_sio.h
+COM_MULTIPORT		opt_sio.h
+CONSPEED		opt_sio.h
+GDBSPEED		opt_sio.h
+
 GDC
+
+# AGP debugging support
+AGP_DEBUG		opt_agp.h
 
 # Video spigot
 SPIGOT_UNSECURE		opt_spigot.h
@@ -96,7 +95,6 @@ DEV_NPX			opt_npx.h
 
 # Debugging
 NPX_DEBUG		opt_npx.h
-AGP_DEBUG		opt_agp.h
 
 # BPF just-in-time compiler
 BPF_JITTER		opt_bpf.h

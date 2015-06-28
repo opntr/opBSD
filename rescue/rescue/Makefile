@@ -1,7 +1,7 @@
 #$FreeBSD$
 #	@(#)Makefile	8.1 (Berkeley) 6/2/93
 
-NO_MAN=
+MAN=
 
 .include <bsd.own.mk>
 MK_SSP=	no
@@ -51,7 +51,8 @@ CRUNCH_LIBS+= ${.OBJDIR}/../librescue/*.o
 CRUNCH_SRCDIRS+= bin
 CRUNCH_PROGS_bin= cat chflags chio chmod cp date dd df echo 	\
 	 ed expr getfacl hostname kenv kill ln ls mkdir mv	\
-	 pkill ps pwd realpath rm rmdir setfacl sh stty sync test
+	 pkill ps pwd realpath rm rmdir setfacl sh sleep stty	\
+	 sync test
 CRUNCH_LIBS+= -lcrypt -ledit -ljail -lkvm -ll -ltermcap -lutil
 CRUNCH_BUILDTOOLS+= bin/sh
 
@@ -113,6 +114,7 @@ CRUNCH_PROGS_sbin+= ipf
 .if ${MK_ZFS} != "no"
 CRUNCH_PROGS_sbin+= zfs
 CRUNCH_PROGS_sbin+= zpool
+CRUNCH_PROGS_usr.sbin+= zdb
 .endif
 
 # crunchgen does not like C++ programs; this should be fixed someday
@@ -123,13 +125,13 @@ CRUNCH_LIBS+= -lalias -lcam -lcurses -ldevstat -lipsec
 CRUNCH_LIBS+= -lipx
 .endif
 .if ${MK_ZFS} != "no"
-CRUNCH_LIBS+= -lavl -lzfs_core -lzfs -lnvpair -lpthread -luutil -lumem
+CRUNCH_LIBS+= -lavl -lzpool -lzfs_core -lzfs -lnvpair -lpthread -luutil -lumem
 .endif
 CRUNCH_LIBS+= -lgeom -lbsdxml -lkiconv
 .if ${MK_OPENSSL} == "no"
 CRUNCH_LIBS+= -lmd
 .endif
-CRUNCH_LIBS+= -lsbuf -lufs -lz
+CRUNCH_LIBS+= -lmt -lsbuf -lufs -lz
 
 .if ${MACHINE_CPUARCH} == "i386"
 CRUNCH_PROGS_sbin+= bsdlabel sconfig fdisk
@@ -139,7 +141,6 @@ CRUNCH_ALIAS_bsdlabel= disklabel
 .endif
 
 .if ${MACHINE} == "pc98"
-CRUNCH_PROGS_sbin+= bsdlabel
 CRUNCH_SRCDIR_fdisk= $(.CURDIR)/../../sbin/fdisk_pc98
 .endif
 
@@ -165,6 +166,7 @@ CRUNCH_SRCDIR_ipf= $(.CURDIR)/../../sbin/ipf/ipf
 .if ${MK_ZFS} != "no"
 CRUNCH_SRCDIR_zfs= ${.CURDIR}/../../cddl/sbin/zfs
 CRUNCH_SRCDIR_zpool= ${.CURDIR}/../../cddl/sbin/zpool
+CRUNCH_SRCDIR_zdb= ${.CURDIR}/../../cddl/usr.sbin/zdb
 .endif
 CRUNCH_ALIAS_reboot= fastboot halt fasthalt
 CRUNCH_ALIAS_restore= rrestore
@@ -215,7 +217,7 @@ CRUNCH_ALIAS_id= groups whoami
 #
 CRUNCH_SRCDIRS+= usr.sbin
 
-CRUNCH_PROGS_usr.sbin= chroot
+CRUNCH_PROGS_usr.sbin+= chroot
 
 CRUNCH_PROGS_usr.sbin+= chown
 CRUNCH_ALIAS_chown= chgrp

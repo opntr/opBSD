@@ -872,13 +872,12 @@ findpcb:
 		goto dropwithreset;
 	}
 	INP_WLOCK_ASSERT(inp);
-	if (!(inp->inp_flags & INP_HW_FLOWID)
-	    && (m->m_flags & M_FLOWID)
-	    && ((inp->inp_socket == NULL)
-		|| !(inp->inp_socket->so_options & SO_ACCEPTCONN))) {
-		inp->inp_flags |= INP_HW_FLOWID;
-		inp->inp_flags &= ~INP_SW_FLOWID;
+	if ((inp->inp_flowtype == M_HASHTYPE_NONE) &&
+	    (M_HASHTYPE_GET(m) != M_HASHTYPE_NONE) &&
+	    ((inp->inp_socket == NULL) ||
+	    (inp->inp_socket->so_options & SO_ACCEPTCONN) == 0)) {
 		inp->inp_flowid = m->m_pkthdr.flowid;
+		inp->inp_flowtype = M_HASHTYPE_GET(m);
 	}
 #ifdef IPSEC
 #ifdef INET6
@@ -2177,11 +2176,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 
 	todrop = tp->rcv_nxt - th->th_seq;
 	if (todrop > 0) {
-		/*
-		 * If this is a duplicate SYN for our current connection,
-		 * advance over it and pretend and it's not a SYN.
-		 */
-		if (thflags & TH_SYN && th->th_seq == tp->irs) {
+		if (thflags & TH_SYN) {
 			thflags &= ~TH_SYN;
 			th->th_seq++;
 			if (th->th_urp > 1)
@@ -3628,6 +3623,8 @@ tcp_mss(struct tcpcb *tp, int offer)
 	if (cap.ifcap & CSUM_TSO) {
 		tp->t_flags |= TF_TSO;
 		tp->t_tsomax = cap.tsomax;
+		tp->t_tsomaxsegcount = cap.tsomaxsegcount;
+		tp->t_tsomaxsegsize = cap.tsomaxsegsize;
 	}
 }
 

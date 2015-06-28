@@ -192,21 +192,20 @@ extern struct rwlock pf_rules_lock;
 
 #define PF_AEQ(a, b, c) \
 	((c == AF_INET && (a)->addr32[0] == (b)->addr32[0]) || \
-	((a)->addr32[3] == (b)->addr32[3] && \
+	(c == AF_INET6 && (a)->addr32[3] == (b)->addr32[3] && \
 	(a)->addr32[2] == (b)->addr32[2] && \
 	(a)->addr32[1] == (b)->addr32[1] && \
 	(a)->addr32[0] == (b)->addr32[0])) \
 
 #define PF_ANEQ(a, b, c) \
-	((c == AF_INET && (a)->addr32[0] != (b)->addr32[0]) || \
-	((a)->addr32[3] != (b)->addr32[3] || \
-	(a)->addr32[2] != (b)->addr32[2] || \
+	((a)->addr32[0] != (b)->addr32[0] || \
 	(a)->addr32[1] != (b)->addr32[1] || \
-	(a)->addr32[0] != (b)->addr32[0])) \
+	(a)->addr32[2] != (b)->addr32[2] || \
+	(a)->addr32[3] != (b)->addr32[3]) \
 
 #define PF_AZERO(a, c) \
 	((c == AF_INET && !(a)->addr32[0]) || \
-	(!(a)->addr32[0] && !(a)->addr32[1] && \
+	(c == AF_INET6 && !(a)->addr32[0] && !(a)->addr32[1] && \
 	!(a)->addr32[2] && !(a)->addr32[3] )) \
 
 #define PF_MATCHA(n, a, m, b, f) \
@@ -1455,19 +1454,17 @@ struct pf_idhash {
 	struct mtx			lock;
 };
 
+extern u_long		pf_hashmask;
+extern u_long		pf_srchashmask;
 #define	PF_HASHSIZ	(32768)
 VNET_DECLARE(struct pf_keyhash *, pf_keyhash);
 VNET_DECLARE(struct pf_idhash *, pf_idhash);
-VNET_DECLARE(u_long, pf_hashmask);
 #define V_pf_keyhash	VNET(pf_keyhash)
 #define	V_pf_idhash	VNET(pf_idhash)
-#define	V_pf_hashmask	VNET(pf_hashmask)
 VNET_DECLARE(struct pf_srchash *, pf_srchash);
-VNET_DECLARE(u_long, pf_srchashmask);
 #define	V_pf_srchash	VNET(pf_srchash)
-#define V_pf_srchashmask VNET(pf_srchashmask)
 
-#define PF_IDHASH(s)	(be64toh((s)->id) % (V_pf_hashmask + 1))
+#define PF_IDHASH(s)	(be64toh((s)->id) % (pf_hashmask + 1))
 
 VNET_DECLARE(void *, pf_swi_cookie);
 #define V_pf_swi_cookie	VNET(pf_swi_cookie)
@@ -1569,13 +1566,18 @@ void				pf_free_rule(struct pf_rule *);
 
 #ifdef INET
 int	pf_test(int, struct ifnet *, struct mbuf **, struct inpcb *);
+int	pf_normalize_ip(struct mbuf **, int, struct pfi_kif *, u_short *,
+	    struct pf_pdesc *);
 #endif /* INET */
 
 #ifdef INET6
 int	pf_test6(int, struct ifnet *, struct mbuf **, struct inpcb *);
+int	pf_normalize_ip6(struct mbuf **, int, struct pfi_kif *, u_short *,
+	    struct pf_pdesc *);
 void	pf_poolmask(struct pf_addr *, struct pf_addr*,
 	    struct pf_addr *, struct pf_addr *, u_int8_t);
 void	pf_addr_inc(struct pf_addr *, sa_family_t);
+int	pf_refragment6(struct ifnet *, struct mbuf **, struct m_tag *);
 #endif /* INET6 */
 
 u_int32_t	pf_new_isn(struct pf_state *);
@@ -1591,10 +1593,6 @@ int	pf_match_port(u_int8_t, u_int16_t, u_int16_t, u_int16_t);
 
 void	pf_normalize_init(void);
 void	pf_normalize_cleanup(void);
-int	pf_normalize_ip(struct mbuf **, int, struct pfi_kif *, u_short *,
-	    struct pf_pdesc *);
-int	pf_normalize_ip6(struct mbuf **, int, struct pfi_kif *, u_short *,
-	    struct pf_pdesc *);
 int	pf_normalize_tcp(int, struct pfi_kif *, struct mbuf *, int, int, void *,
 	    struct pf_pdesc *);
 void	pf_normalize_tcp_cleanup(struct pf_state *);
@@ -1671,6 +1669,8 @@ int		 pfi_clear_flags(const char *, int);
 
 int		 pf_match_tag(struct mbuf *, struct pf_rule *, int *, int);
 int		 pf_tag_packet(struct mbuf *, struct pf_pdesc *, int);
+int		 pf_addr_cmp(struct pf_addr *, struct pf_addr *,
+		    sa_family_t);
 void		 pf_qid2qname(u_int32_t, char *);
 
 VNET_DECLARE(struct pf_kstatus, pf_status);

@@ -76,6 +76,7 @@
 __FBSDID("$FreeBSD$");
 
 #include "opt_vm.h"
+#include "opt_kdtrace.h"
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -89,6 +90,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/racct.h>
 #include <sys/resourcevar.h>
 #include <sys/sched.h>
+#include <sys/sdt.h>
 #include <sys/signalvar.h>
 #include <sys/smp.h>
 #include <sys/vnode.h>
@@ -115,9 +117,13 @@ __FBSDID("$FreeBSD$");
 
 /* the kernel process "vm_pageout"*/
 static void vm_pageout(void);
+static void vm_pageout_init(void);
 static int vm_pageout_clean(vm_page_t);
 static void vm_pageout_scan(struct vm_domain *vmd, int pass);
 static void vm_pageout_mightbe_oom(struct vm_domain *vmd, int pass);
+
+SYSINIT(pagedaemon_init, SI_SUB_KTHREAD_PAGE, SI_ORDER_FIRST, vm_pageout_init,
+    NULL);
 
 struct proc *pageproc;
 
@@ -126,8 +132,12 @@ static struct kproc_desc page_kp = {
 	vm_pageout,
 	&pageproc
 };
-SYSINIT(pagedaemon, SI_SUB_KTHREAD_PAGE, SI_ORDER_FIRST, kproc_start,
+SYSINIT(pagedaemon, SI_SUB_KTHREAD_PAGE, SI_ORDER_SECOND, kproc_start,
     &page_kp);
+
+SDT_PROVIDER_DEFINE(vm);
+SDT_PROBE_DEFINE(vm, , , vm__lowmem_cache);
+SDT_PROBE_DEFINE(vm, , , vm__lowmem_scan);
 
 #if !defined(NO_SWAPPING)
 /* the kernel process "vm_daemon"*/
@@ -663,6 +673,7 @@ vm_pageout_grow_cache(int tries, vm_paddr_t low, vm_paddr_t high)
 		 * may acquire locks and/or sleep, so they can only be invoked
 		 * when "tries" is greater than zero.
 		 */
+		SDT_PROBE0(vm, , , vm__lowmem_cache);
 		EVENTHANDLER_INVOKE(vm_lowmem, 0);
 
 		/*
@@ -921,10 +932,11 @@ vm_pageout_scan(struct vm_domain *vmd, int pass)
 	 * some.  We rate limit to avoid thrashing.
 	 */
 	if (vmd == &vm_dom[0] && pass > 0 &&
-	    lowmem_ticks + (lowmem_period * hz) < ticks) {
+	    (ticks - lowmem_ticks) / hz >= lowmem_period) {
 		/*
 		 * Decrease registered cache sizes.
 		 */
+		SDT_PROBE0(vm, , , vm__lowmem_scan);
 		EVENTHANDLER_INVOKE(vm_lowmem, 0);
 		/*
 		 * We do this explicitly after the caches have been
@@ -1308,6 +1320,23 @@ relock_queues:
 	}
 	vm_pagequeue_unlock(pq);
 
+#if !defined(NO_SWAPPING)
+	/*
+	 * Wakeup the swapout daemon if we didn't cache or free the targeted
+	 * number of pages. 
+	 */
+	if (vm_swap_enabled && page_shortage > 0)
+		vm_req_vmdaemon(VM_SWAP_NORMAL);
+#endif
+
+	/*
+	 * Wakeup the sync daemon if we skipped a vnode in a writeable object
+	 * and we didn't cache or free enough pages.
+	 */
+	if (vnodes_skipped > 0 && page_shortage > cnt.v_free_target -
+	    cnt.v_free_min)
+		(void)speedup_syncer();
+
 	/*
 	 * Compute the number of pages we want to try to move from the
 	 * active queue to the inactive queue.
@@ -1418,20 +1447,6 @@ relock_queues:
 		}
 	}
 #endif
-		
-	/*
-	 * If we didn't get enough free pages, and we have skipped a vnode
-	 * in a writeable object, wakeup the sync daemon.  And kick swapout
-	 * if we did not get enough free pages.
-	 */
-	if (vm_paging_target() > 0) {
-		if (vnodes_skipped && vm_page_count_min())
-			(void) speedup_syncer();
-#if !defined(NO_SWAPPING)
-		if (vm_swap_enabled && vm_page_count_target())
-			vm_req_vmdaemon(VM_SWAP_NORMAL);
-#endif
-	}
 
 	/*
 	 * If we are critically low on one of RAM or swap and low on
@@ -1511,15 +1526,15 @@ vm_pageout_oom(int shortage)
 	FOREACH_PROC_IN_SYSTEM(p) {
 		int breakout;
 
-		if (PROC_TRYLOCK(p) == 0)
-			continue;
+		PROC_LOCK(p);
+
 		/*
 		 * If this is a system, protected or killed process, skip it.
 		 */
-		if (p->p_state != PRS_NORMAL ||
-		    (p->p_flag & (P_INEXEC | P_PROTECTED | P_SYSTEM)) ||
-		    (p->p_pid == 1) || P_KILLED(p) ||
-		    ((p->p_pid < 48) && (swap_pager_avail != 0))) {
+		if (p->p_state != PRS_NORMAL || (p->p_flag & (P_INEXEC |
+		    P_PROTECTED | P_SYSTEM | P_WEXIT)) != 0 ||
+		    p->p_pid == 1 || P_KILLED(p) ||
+		    (p->p_pid < 48 && swap_pager_avail != 0)) {
 			PROC_UNLOCK(p);
 			continue;
 		}
@@ -1552,11 +1567,14 @@ vm_pageout_oom(int shortage)
 			PROC_UNLOCK(p);
 			continue;
 		}
+		_PHOLD(p);
 		if (!vm_map_trylock_read(&vm->vm_map)) {
-			vmspace_free(vm);
+			_PRELE(p);
 			PROC_UNLOCK(p);
+			vmspace_free(vm);
 			continue;
 		}
+		PROC_UNLOCK(p);
 		size = vmspace_swap_count(vm);
 		vm_map_unlock_read(&vm->vm_map);
 		if (shortage == VM_OOM_MEM)
@@ -1568,16 +1586,19 @@ vm_pageout_oom(int shortage)
 		 */
 		if (size > bigsize) {
 			if (bigproc != NULL)
-				PROC_UNLOCK(bigproc);
+				PRELE(bigproc);
 			bigproc = p;
 			bigsize = size;
-		} else
-			PROC_UNLOCK(p);
+		} else {
+			PRELE(p);
+		}
 	}
 	sx_sunlock(&allproc_lock);
 	if (bigproc != NULL) {
+		PROC_LOCK(bigproc);
 		killproc(bigproc, "out of swap space");
 		sched_nice(bigproc, PRIO_MIN);
+		_PRELE(bigproc);
 		PROC_UNLOCK(bigproc);
 		wakeup(&cnt.v_free_count);
 	}
@@ -1647,15 +1668,11 @@ vm_pageout_worker(void *arg)
 }
 
 /*
- *	vm_pageout is the high level pageout daemon.
+ *	vm_pageout_init initialises basic pageout daemon settings.
  */
 static void
-vm_pageout(void)
+vm_pageout_init(void)
 {
-#if MAXMEMDOM > 1
-	int error, i;
-#endif
-
 	/*
 	 * Initialize some paging parameters.
 	 */
@@ -1701,6 +1718,18 @@ vm_pageout(void)
 	/* XXX does not really belong here */
 	if (vm_page_max_wired == 0)
 		vm_page_max_wired = cnt.v_free_count / 3;
+}
+
+/*
+ *     vm_pageout is the high level pageout daemon.
+ */
+static void
+vm_pageout(void)
+{
+	int error;
+#if MAXMEMDOM > 1
+	int i;
+#endif
 
 	swap_pager_swap_init();
 #if MAXMEMDOM > 1
@@ -1713,6 +1742,10 @@ vm_pageout(void)
 		}
 	}
 #endif
+	error = kthread_add(uma_reclaim_worker, NULL, curproc, NULL,
+	    0, 0, "uma");
+	if (error != 0)
+		panic("starting uma_reclaim helper, error %d\n", error);
 	vm_pageout_worker((void *)(uintptr_t)0);
 }
 
@@ -1761,11 +1794,13 @@ vm_daemon(void)
 
 	while (TRUE) {
 		mtx_lock(&vm_daemon_mtx);
+		msleep(&vm_daemon_needed, &vm_daemon_mtx, PPAUSE, "psleep",
 #ifdef RACCT
-		msleep(&vm_daemon_needed, &vm_daemon_mtx, PPAUSE, "psleep", hz);
+		    racct_enable ? hz : 0
 #else
-		msleep(&vm_daemon_needed, &vm_daemon_mtx, PPAUSE, "psleep", 0);
+		    0
 #endif
+		);
 		swapout_flags = vm_pageout_req_swapout;
 		vm_pageout_req_swapout = 0;
 		mtx_unlock(&vm_daemon_mtx);
@@ -1840,33 +1875,40 @@ again:
 				    &vm->vm_map, limit);
 			}
 #ifdef RACCT
-			rsize = IDX_TO_OFF(size);
-			PROC_LOCK(p);
-			racct_set(p, RACCT_RSS, rsize);
-			ravailable = racct_get_available(p, RACCT_RSS);
-			PROC_UNLOCK(p);
-			if (rsize > ravailable) {
-				/*
-				 * Don't be overly aggressive; this might be
-				 * an innocent process, and the limit could've
-				 * been exceeded by some memory hog.  Don't
-				 * try to deactivate more than 1/4th of process'
-				 * resident set size.
-				 */
-				if (attempts <= 8) {
-					if (ravailable < rsize - (rsize / 4))
-						ravailable = rsize - (rsize / 4);
-				}
-				vm_pageout_map_deactivate_pages(
-				    &vm->vm_map, OFF_TO_IDX(ravailable));
-				/* Update RSS usage after paging out. */
-				size = vmspace_resident_count(vm);
+			if (racct_enable) {
 				rsize = IDX_TO_OFF(size);
 				PROC_LOCK(p);
 				racct_set(p, RACCT_RSS, rsize);
+				ravailable = racct_get_available(p, RACCT_RSS);
 				PROC_UNLOCK(p);
-				if (rsize > ravailable)
-					tryagain = 1;
+				if (rsize > ravailable) {
+					/*
+					 * Don't be overly aggressive; this
+					 * might be an innocent process,
+					 * and the limit could've been exceeded
+					 * by some memory hog.  Don't try
+					 * to deactivate more than 1/4th
+					 * of process' resident set size.
+					 */
+					if (attempts <= 8) {
+						if (ravailable < rsize -
+						    (rsize / 4)) {
+							ravailable = rsize -
+							    (rsize / 4);
+						}
+					}
+					vm_pageout_map_deactivate_pages(
+					    &vm->vm_map,
+					    OFF_TO_IDX(ravailable));
+					/* Update RSS usage after paging out. */
+					size = vmspace_resident_count(vm);
+					rsize = IDX_TO_OFF(size);
+					PROC_LOCK(p);
+					racct_set(p, RACCT_RSS, rsize);
+					PROC_UNLOCK(p);
+					if (rsize > ravailable)
+						tryagain = 1;
+				}
 			}
 #endif
 			vmspace_free(vm);

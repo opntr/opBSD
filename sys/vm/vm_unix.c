@@ -37,6 +37,7 @@
  */
 
 #include "opt_compat.h"
+#include "opt_pax.h"
 
 /*
  * Traditional sbrk/grow interface to VM
@@ -48,6 +49,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/param.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/pax.h>
 #include <sys/proc.h>
 #include <sys/racct.h>
 #include <sys/resourcevar.h>
@@ -79,7 +81,8 @@ sys_obreak(td, uap)
 	vm_map_t map = &vm->vm_map;
 	vm_offset_t new, old, base;
 	rlim_t datalim, lmemlim, vmemlim;
-	int prot, rv;
+	vm_prot_t prot, maxprot;
+	int rv;
 	int error = 0;
 	boolean_t do_map_wirefuture;
 
@@ -130,54 +133,61 @@ sys_obreak(td, uap)
 			goto done;
 		}
 #ifdef RACCT
-		PROC_LOCK(td->td_proc);
-		error = racct_set(td->td_proc, RACCT_DATA, new - base);
-		if (error != 0) {
-			PROC_UNLOCK(td->td_proc);
-			error = ENOMEM;
-			goto done;
-		}
-		error = racct_set(td->td_proc, RACCT_VMEM,
-		    map->size + (new - old));
-		if (error != 0) {
-			racct_set_force(td->td_proc, RACCT_DATA, old - base);
-			PROC_UNLOCK(td->td_proc);
-			error = ENOMEM;
-			goto done;
-		}
-		if (!old_mlock && map->flags & MAP_WIREFUTURE) {
-			error = racct_set(td->td_proc, RACCT_MEMLOCK,
-			    ptoa(pmap_wired_count(map->pmap)) + (new - old));
+		if (racct_enable) {
+			PROC_LOCK(td->td_proc);
+			error = racct_set(td->td_proc, RACCT_DATA, new - base);
 			if (error != 0) {
-				racct_set_force(td->td_proc, RACCT_DATA,
-				    old - base);
-				racct_set_force(td->td_proc, RACCT_VMEM,
-				    map->size);
 				PROC_UNLOCK(td->td_proc);
 				error = ENOMEM;
 				goto done;
 			}
-		}
-		PROC_UNLOCK(td->td_proc);
-#endif
-		prot = VM_PROT_RW;
-#ifdef COMPAT_FREEBSD32
-#if defined(__amd64__) || defined(__ia64__)
-		if (i386_read_exec && SV_PROC_FLAG(td->td_proc, SV_ILP32))
-			prot |= VM_PROT_EXECUTE;
-#endif
-#endif
-		rv = vm_map_insert(map, NULL, 0, old, new, prot, VM_PROT_ALL, 0);
-		if (rv != KERN_SUCCESS) {
-#ifdef RACCT
-			PROC_LOCK(td->td_proc);
-			racct_set_force(td->td_proc, RACCT_DATA, old - base);
-			racct_set_force(td->td_proc, RACCT_VMEM, map->size);
+			error = racct_set(td->td_proc, RACCT_VMEM,
+			    map->size + (new - old));
+			if (error != 0) {
+				racct_set_force(td->td_proc, RACCT_DATA,
+				    old - base);
+				PROC_UNLOCK(td->td_proc);
+				error = ENOMEM;
+				goto done;
+			}
 			if (!old_mlock && map->flags & MAP_WIREFUTURE) {
-				racct_set_force(td->td_proc, RACCT_MEMLOCK,
-				    ptoa(pmap_wired_count(map->pmap)));
+				error = racct_set(td->td_proc, RACCT_MEMLOCK,
+				    ptoa(pmap_wired_count(map->pmap)) +
+				    (new - old));
+				if (error != 0) {
+					racct_set_force(td->td_proc, RACCT_DATA,
+					    old - base);
+					racct_set_force(td->td_proc, RACCT_VMEM,
+					    map->size);
+					PROC_UNLOCK(td->td_proc);
+					error = ENOMEM;
+					goto done;
+				}
 			}
 			PROC_UNLOCK(td->td_proc);
+		}
+#endif
+		prot = VM_PROT_RW;
+		maxprot = VM_PROT_ALL;
+#ifdef PAX_NOEXEC
+		pax_noexec_nx(td->td_proc, &prot, &maxprot);
+#endif
+		rv = vm_map_insert(map, NULL, 0, old, new, prot, maxprot, 0);
+		if (rv != KERN_SUCCESS) {
+#ifdef RACCT
+			if (racct_enable) {
+				PROC_LOCK(td->td_proc);
+				racct_set_force(td->td_proc,
+				    RACCT_DATA, old - base);
+				racct_set_force(td->td_proc,
+				    RACCT_VMEM, map->size);
+				if (!old_mlock && map->flags & MAP_WIREFUTURE) {
+					racct_set_force(td->td_proc,
+					    RACCT_MEMLOCK,
+					    ptoa(pmap_wired_count(map->pmap)));
+				}
+				PROC_UNLOCK(td->td_proc);
+			}
 #endif
 			error = ENOMEM;
 			goto done;
@@ -205,14 +215,16 @@ sys_obreak(td, uap)
 		}
 		vm->vm_dsize -= btoc(old - new);
 #ifdef RACCT
-		PROC_LOCK(td->td_proc);
-		racct_set_force(td->td_proc, RACCT_DATA, new - base);
-		racct_set_force(td->td_proc, RACCT_VMEM, map->size);
-		if (!old_mlock && map->flags & MAP_WIREFUTURE) {
-			racct_set_force(td->td_proc, RACCT_MEMLOCK,
-			    ptoa(pmap_wired_count(map->pmap)));
+		if (racct_enable) {
+			PROC_LOCK(td->td_proc);
+			racct_set_force(td->td_proc, RACCT_DATA, new - base);
+			racct_set_force(td->td_proc, RACCT_VMEM, map->size);
+			if (!old_mlock && map->flags & MAP_WIREFUTURE) {
+				racct_set_force(td->td_proc, RACCT_MEMLOCK,
+				    ptoa(pmap_wired_count(map->pmap)));
+			}
+			PROC_UNLOCK(td->td_proc);
 		}
-		PROC_UNLOCK(td->td_proc);
 #endif
 	}
 done:

@@ -683,21 +683,27 @@ g_provider_by_name(char const *arg)
 {
 	struct g_class *cp;
 	struct g_geom *gp;
-	struct g_provider *pp;
+	struct g_provider *pp, *wpp;
 
 	if (strncmp(arg, _PATH_DEV, sizeof(_PATH_DEV) - 1) == 0)
 		arg += sizeof(_PATH_DEV) - 1;
 
+	wpp = NULL;
 	LIST_FOREACH(cp, &g_classes, class) {
 		LIST_FOREACH(gp, &cp->geom, geom) {
 			LIST_FOREACH(pp, &gp->provider, provider) {
-				if (!strcmp(arg, pp->name))
+				if (strcmp(arg, pp->name) != 0)
+					continue;
+				if ((gp->flags & G_GEOM_WITHER) == 0 &&
+				    (pp->flags & G_PF_WITHER) == 0)
 					return (pp);
+				else
+					wpp = pp;
 			}
 		}
 	}
 
-	return (NULL);
+	return (wpp);
 }
 
 void
@@ -946,6 +952,13 @@ g_access(struct g_consumer *cp, int dcr, int dcw, int dce)
 
 int
 g_handleattr_int(struct bio *bp, const char *attribute, int val)
+{
+
+	return (g_handleattr(bp, attribute, &val, sizeof val));
+}
+
+int
+g_handleattr_uint16_t(struct bio *bp, const char *attribute, uint16_t val)
 {
 
 	return (g_handleattr(bp, attribute, &val, sizeof val));
