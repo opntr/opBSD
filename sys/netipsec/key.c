@@ -58,12 +58,8 @@
 #include <sys/syslog.h>
 
 #include <net/if.h>
-<<<<<<< HEAD
 #include <net/if_var.h>
 #include <net/route.h>
-=======
-#include <net/raw_cb.h>
->>>>>>> hardened/10-stable/master
 #include <net/vnet.h>
 #include <net/raw_cb.h>
 

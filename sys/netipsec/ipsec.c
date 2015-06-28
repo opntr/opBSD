@@ -55,11 +55,8 @@
 #include <sys/proc.h>
 
 #include <net/if.h>
-<<<<<<< HEAD
 #include <net/if_var.h>
 #include <net/route.h>
-=======
->>>>>>> hardened/10-stable/master
 #include <net/vnet.h>
 
 #include <netinet/in.h>
