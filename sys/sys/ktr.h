@@ -75,8 +75,9 @@
 #define	KTR_INET6	0x10000000		/* IPv6 stack */
 #define	KTR_SCHED	0x20000000		/* Machine parsed sched info. */
 #define	KTR_BUF		0x40000000		/* Buffer cache */
-#define	KTR_PAX		0x80000000		/* PaX */
-#define	KTR_ALL		0xffffffff
+#define	KTR_PTRACE	0x80000000		/* Process debugging. */
+#define	KTR_PAX		0x100000000		/* PaX */
+#define	KTR_ALL		0x1ffffffff
 
 /* Trace classes to compile in */
 #ifdef KTR
@@ -112,7 +113,7 @@ struct ktr_entry {
 };
 
 extern cpuset_t ktr_cpumask;
-extern int ktr_mask;
+extern uint64_t ktr_mask;
 extern int ktr_entries;
 extern int ktr_verbose;
 
@@ -121,7 +122,7 @@ extern struct ktr_entry *ktr_buf;
 
 #ifdef KTR
 
-void	ktr_tracepoint(u_int mask, const char *file, int line,
+void	ktr_tracepoint(uint64_t mask, const char *file, int line,
 	    const char *format, u_long arg1, u_long arg2, u_long arg3,
 	    u_long arg4, u_long arg5, u_long arg6);
 

@@ -195,7 +195,7 @@ pax_elf(struct image_params *imgp, uint32_t mode)
 	if (pax_validate_flags(flags) != 0) {
 		pax_log_internal_imgp(imgp, PAX_LOG_DEFAULT,
 		    "unknown paxflags: %x", flags);
-		pax_ulog_internal(NULL, "unknown paxflags: %x\n", flags);
+		pax_ulog_internal("unknown paxflags: %x\n", flags);
 
 		return (ENOEXEC);
 	}
@@ -206,7 +206,7 @@ pax_elf(struct image_params *imgp, uint32_t mode)
 		 */
 		pax_log_internal_imgp(imgp, PAX_LOG_DEFAULT,
 		    "inconsistent paxflags: %x", flags);
-		pax_ulog_internal(NULL, "inconsistent paxflags: %x\n", flags);
+		pax_ulog_internal("inconsistent paxflags: %x\n", flags);
 
 		return (ENOEXEC);
 	}
@@ -236,11 +236,11 @@ pax_elf(struct image_params *imgp, uint32_t mode)
 	imgp->proc->p_pax = flags;
 
 	/*
-	 * if we disable features with secadm, print out a warning
+	 * if we enable/disable features with secadm, print out a warning
 	 */
 	if (mode != 0) {
 		pax_log_internal_imgp(imgp, PAX_LOG_DEFAULT,
-		   "the process has explicitly disabled features");
+		   "the process has non-default settings");
 	}
 
 	return (0);

@@ -207,6 +207,12 @@ exit1(struct thread *td, int rv)
 	}
 
 	/*
+	 * Deref SU mp, since the thread does not return to userspace.
+	 */
+	if (softdep_ast_cleanup != NULL)
+		softdep_ast_cleanup();
+
+	/*
 	 * MUST abort all other threads before proceeding past here.
 	 */
 	PROC_LOCK(p);
@@ -525,6 +531,8 @@ exit1(struct thread *td, int rv)
 	 */
 	while ((q = LIST_FIRST(&p->p_orphans)) != NULL) {
 		PROC_LOCK(q);
+		CTR2(KTR_PTRACE, "exit: pid %d, clearing orphan %d", p->p_pid,
+		    q->p_pid);
 		clear_orphan(q);
 		PROC_UNLOCK(q);
 	}
@@ -859,6 +867,9 @@ proc_reap(struct thread *td, struct proc *p, int *status, int options)
 		t = proc_realparent(p);
 		PROC_LOCK(t);
 		PROC_LOCK(p);
+		CTR2(KTR_PTRACE,
+		    "wait: traced child %d moved back to parent %d", p->p_pid,
+		    t->p_pid);
 		proc_reparent(p, t);
 		p->p_oppid = 0;
 		PROC_UNLOCK(p);
@@ -910,9 +921,11 @@ proc_reap(struct thread *td, struct proc *p, int *status, int options)
 	 * Destroy resource accounting information associated with the process.
 	 */
 #ifdef RACCT
-	PROC_LOCK(p);
-	racct_sub(p, RACCT_NPROC, 1);
-	PROC_UNLOCK(p);
+	if (racct_enable) {
+		PROC_LOCK(p);
+		racct_sub(p, RACCT_NPROC, 1);
+		PROC_UNLOCK(p);
+	}
 #endif
 	racct_proc_exit(p);
 
@@ -951,12 +964,10 @@ static int
 proc_to_reap(struct thread *td, struct proc *p, idtype_t idtype, id_t id,
     int *status, int options, struct __wrusage *wrusage, siginfo_t *siginfo)
 {
-	struct proc *q;
 	struct rusage *rup;
 
 	sx_assert(&proctree_lock, SA_XLOCKED);
 
-	q = td->td_proc;
 	PROC_LOCK(p);
 
 	switch (idtype) {
@@ -1215,6 +1226,10 @@ loop:
 				PROC_UNLOCK(q);
 			}
 
+			CTR4(KTR_PTRACE,
+	    "wait: returning trapped pid %d status %#x (xstat %d) xthread %d",
+			    p->p_pid, W_STOPCODE(p->p_xstat), p->p_xstat,
+			    p->p_xthread != NULL ? p->p_xthread->td_tid : -1);
 			PROC_UNLOCK(p);
 			return (0);
 		}

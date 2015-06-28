@@ -250,6 +250,7 @@ MAN=	aac.4 \
 	malo.4 \
 	mcd.4 \
 	md.4 \
+	me.4 \
 	mem.4 \
 	meteor.4 \
 	mfi.4 \
@@ -517,6 +518,7 @@ MAN=	aac.4 \
 	${_virtio_scsi.4} \
 	vkbd.4 \
 	vlan.4 \
+	vxlan.4 \
 	${_vmx.4} \
 	vpo.4 \
 	vr.4 \
@@ -687,6 +689,7 @@ MLINKS+=tx.4 if_tx.4
 MLINKS+=txp.4 if_txp.4
 MLINKS+=vge.4 if_vge.4
 MLINKS+=vlan.4 if_vlan.4
+MLINKS+=vxlan.4 if_vxlan.4
 MLINKS+=${_vmx.4} ${_if_vmx.4}
 MLINKS+=vpo.4 imm.4
 MLINKS+=vr.4 if_vr.4

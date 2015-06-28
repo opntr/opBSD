@@ -60,8 +60,8 @@ static void pax_log_ulog(const char *prefix, const char *fmt, va_list ap);
 		    "\006NOSEGVGUARD"	\
 		    "\007ASLR"		\
 		    "\010NOASLR"	\
-		    "\011<f8>"		\
-		    "\012<f9>"		\
+		    "\011SHLIBRANDOM"	\
+		    "\012NOSHLIBRANDOM"		\
 		    "\013<f10>"		\
 		    "\014<f11>"		\
 		    "\015<f12>"		\
@@ -319,7 +319,8 @@ pax_log_ulog(const char *prefix, const char *fmt, va_list ap)
 	if (sb == NULL)
 		panic("%s: Could not allocate memory", __func__);
 
-	sbuf_printf(sb, "%s ", prefix);
+	if (prefix != NULL)
+		sbuf_printf(sb, "%s ", prefix);
 	sbuf_vprintf(sb, fmt, ap);
 	if (sbuf_finish(sb) != 0)
 		panic("%s: Could not generate message", __func__);

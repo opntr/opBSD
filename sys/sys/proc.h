@@ -320,6 +320,7 @@ struct thread {
 	struct proc	*td_rfppwait_p;	/* (k) The vforked child */
 	struct vm_page	**td_ma;	/* (k) uio pages held */
 	int		td_ma_cnt;	/* (k) size of *td_ma */
+	void		*td_su;		/* (k) FFS SU private */
 };
 
 struct mtx *thread_lock_block(struct thread *);
@@ -655,6 +656,7 @@ struct proc {
 #define	P2_INHERIT_PROTECTED 0x00000001 /* New children get P_PROTECTED. */
 #define	P2_NOTRACE	0x00000002	/* No ptrace(2) attach or coredumps. */
 #define	P2_NOTRACE_EXEC 0x00000004	/* Keep P2_NOPTRACE on exec(2). */
+#define	P2_AST_SU	0x00000008	/* Handles SU ast for kthreads. */
 
 /* Flags protected by proctree_lock, kept in p_treeflags. */
 #define	P_TREE_ORPHANED		0x00000001	/* Reparented, on orphan list */
@@ -968,7 +970,6 @@ void	thread_suspend_switch(struct thread *, struct proc *p);
 void	thread_suspend_one(struct thread *td);
 void	thread_unlink(struct thread *td);
 void	thread_unsuspend(struct proc *p);
-int	thread_unsuspend_one(struct thread *td, struct proc *p);
 void	thread_wait(struct proc *p);
 struct thread	*thread_find(struct proc *p, lwpid_t tid);
 

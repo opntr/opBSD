@@ -861,6 +861,7 @@ DCONS_FORCE_CONSOLE	opt_dcons.h
 DCONS_FORCE_GDB		opt_dcons.h
 
 # HWPMC options
+HWPMC_DEBUG		opt_global.h
 HWPMC_HOOKS
 HWPMC_MIPS_BACKTRACE 	opt_hwpmc_hooks.h
 
@@ -927,6 +928,7 @@ IPOIB_CM	opt_ofed.h
 
 # Resource Accounting
 RACCT		opt_global.h
+RACCT_DEFAULT_TO_DISABLED	opt_global.h
 
 # Resource Limits
 RCTL		opt_global.h
@@ -948,3 +950,6 @@ RANDOM_YARROW	opt_random.h
 RANDOM_FORTUNA	opt_random.h
 RANDOM_DEBUG	opt_random.h
 RANDOM_RWFILE	opt_random.h
+
+# Intel em(4) driver
+EM_MULTIQUEUE	opt_em.h

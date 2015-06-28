@@ -50,6 +50,8 @@
         ..
     ..
     etc
+        rc.d
+        ..
     ..
     games
     ..
@@ -185,6 +187,8 @@
         file
         ..
         kern
+            execve
+            ..
         ..
         kqueue
         ..

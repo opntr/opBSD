@@ -780,6 +780,19 @@ pax_aslr_mmap(struct proc *p, vm_offset_t *addr, vm_offset_t orig_addr, int flag
 }
 
 void
+pax_aslr_rtld(struct proc *p, vm_offset_t *addr)
+{
+
+	PROC_LOCK_ASSERT(p, MA_OWNED);
+
+	if (!pax_aslr_active(p))
+		return;
+
+	*addr += p->p_vmspace->vm_aslr_delta_mmap;
+	CTR2(KTR_PAX, "%s: result %p\n", __func__, (void *)*addr);
+}
+
+void
 pax_aslr_stack(struct proc *p, uintptr_t *addr)
 {
 	uintptr_t orig_addr;
@@ -842,6 +855,8 @@ pax_aslr_setup_flags(struct image_params *imgp, uint32_t mode)
 	if (status == PAX_FEATURE_DISABLED) {
 		flags &= ~PAX_NOTE_ASLR;
 		flags |= PAX_NOTE_NOASLR;
+		flags &= ~PAX_NOTE_SHLIBRANDOM;
+		flags |= PAX_NOTE_NOSHLIBRANDOM;
 
 		return (flags);
 	}
@@ -849,6 +864,8 @@ pax_aslr_setup_flags(struct image_params *imgp, uint32_t mode)
 	if (status == PAX_FEATURE_FORCE_ENABLED) {
 		flags |= PAX_NOTE_ASLR;
 		flags &= ~PAX_NOTE_NOASLR;
+		flags |= PAX_NOTE_SHLIBRANDOM;
+		flags &= ~PAX_NOTE_NOSHLIBRANDOM;
 
 		return (flags);
 	}
@@ -861,6 +878,14 @@ pax_aslr_setup_flags(struct image_params *imgp, uint32_t mode)
 			flags &= ~PAX_NOTE_ASLR;
 			flags |= PAX_NOTE_NOASLR;
 		}
+		if (mode & PAX_NOTE_SHLIBRANDOM) {
+			flags |= PAX_NOTE_SHLIBRANDOM;
+			flags &= ~PAX_NOTE_NOSHLIBRANDOM;
+		} else {
+			flags &= ~PAX_NOTE_SHLIBRANDOM;
+			flags |= PAX_NOTE_NOSHLIBRANDOM;
+		}
+
 
 		return (flags);
 	}
@@ -873,6 +898,13 @@ pax_aslr_setup_flags(struct image_params *imgp, uint32_t mode)
 			flags |= PAX_NOTE_ASLR;
 			flags &= ~PAX_NOTE_NOASLR;
 		}
+		if (mode & PAX_NOTE_NOSHLIBRANDOM) {
+			flags &= ~PAX_NOTE_SHLIBRANDOM;
+			flags |= PAX_NOTE_NOSHLIBRANDOM;
+		} else {
+			flags |= PAX_NOTE_SHLIBRANDOM;
+			flags &= ~PAX_NOTE_NOSHLIBRANDOM;
+		}
 
 		return (flags);
 	}
@@ -882,6 +914,8 @@ pax_aslr_setup_flags(struct image_params *imgp, uint32_t mode)
 	 */
 	flags |= PAX_NOTE_ASLR;
 	flags &= ~PAX_NOTE_NOASLR;
+	flags |= PAX_NOTE_SHLIBRANDOM;
+	flags &= ~PAX_NOTE_NOSHLIBRANDOM;
 
 	return (flags);
 }

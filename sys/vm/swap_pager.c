@@ -198,11 +198,13 @@ swap_reserve_by_cred(vm_ooffset_t incr, struct ucred *cred)
 		panic("swap_reserve: & PAGE_MASK");
 
 #ifdef RACCT
-	PROC_LOCK(curproc);
-	error = racct_add(curproc, RACCT_SWAP, incr);
-	PROC_UNLOCK(curproc);
-	if (error != 0)
-		return (0);
+	if (racct_enable) {
+		PROC_LOCK(curproc);
+		error = racct_add(curproc, RACCT_SWAP, incr);
+		PROC_UNLOCK(curproc);
+		if (error != 0)
+			return (0);
+	}
 #endif
 
 	res = 0;
@@ -693,6 +695,8 @@ swap_pager_dealloc(vm_object_t object)
 	 * if paging is still in progress on some objects.
 	 */
 	swp_pager_meta_free_all(object);
+	object->handle = NULL;
+	object->type = OBJT_DEAD;
 }
 
 /************************************************************************

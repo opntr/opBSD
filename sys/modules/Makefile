@@ -138,14 +138,16 @@ SUBDIR=	\
 	if_ef \
 	if_epair \
 	if_faith \
-	if_gif \
+	${_if_gif} \
 	${_if_gre} \
+	${_if_me} \
 	if_lagg \
 	${_if_ndis} \
 	if_stf \
 	if_tap \
 	if_tun \
 	if_vlan \
+	if_vxlan \
 	${_igb} \
 	${_iir} \
 	${_imgact_binmisc} \
@@ -168,6 +170,8 @@ SUBDIR=	\
 	${_iwifw} \
 	${_iwn} \
 	${_iwnfw} \
+	${_ix} \
+	${_ixv} \
 	${_ixgb} \
 	${_ixgbe} \
 	${_ixl} \
@@ -394,7 +398,9 @@ _cxgb=		cxgb
 .endif
 .endif
 
-.if ${MK_SOURCELESS_UCODE} != "no"
+.if ${MK_SOURCELESS_UCODE} != "no" && ${MACHINE_CPUARCH} != "arm" && \
+	${MACHINE_ARCH:C/mips(el)?/mips/} != "mips" && \
+	${MACHINE_ARCH} != "powerpc"
 _cxgbe=		cxgbe
 .endif
 
@@ -416,10 +422,12 @@ _random=	random
 	defined(ALL_MODULES)
 _carp=	carp
 _toecore=	toecore
+_if_gif=	if_gif
+_if_gre=	if_gre
 .endif
 
 .if ${MK_INET_SUPPORT} != "no" || defined(ALL_MODULES)
-_if_gre=	if_gre
+_if_me=		if_me
 .endif
 
 .if ${MK_IPFILTER} != "no" || defined(ALL_MODULES)
@@ -607,6 +615,8 @@ _iwn=		iwn
 .if ${MK_SOURCELESS_UCODE} != "no"
 _iwnfw=		iwnfw
 .endif
+_ix=		ix
+_ixv=		ixv
 _ixgb=		ixgb
 _ixgbe=		ixgbe
 _mly=		mly
@@ -713,6 +723,8 @@ _iwn=		iwn
 .if ${MK_SOURCELESS_UCODE} != "no"
 _iwnfw=		iwnfw
 .endif
+_ix=		ix
+_ixv=		ixv
 _ixgb=		ixgb
 _ixgbe=		ixgbe
 _ixl=		ixl
@@ -874,6 +886,8 @@ _zfs=		zfs
 .if defined(MODULES_OVERRIDE) && !defined(ALL_MODULES)
 SUBDIR=${MODULES_OVERRIDE}
 .endif
+
+SUBDIR+=${MODULES_EXTRA}
 
 .for reject in ${WITHOUT_MODULES}
 SUBDIR:= ${SUBDIR:N${reject}}

@@ -32,7 +32,7 @@
 #ifndef	_SYS_PAX_H
 #define	_SYS_PAX_H
 
-#define	__HardenedBSD_version	20
+#define	__HardenedBSD_version	23
 
 #if defined(_KERNEL) || defined(_WANT_PRISON)
 struct hardening_features {
@@ -45,7 +45,6 @@ struct hardening_features {
 	int	 hr_pax_aslr_compat_stack_len;	/* (p) Number of bits randomized with stack (compat32) */
 	int	 hr_pax_aslr_compat_exec_len;	/* (p) Number of bits randomized with the execbase (compat32) */
 	int	 hr_pax_segvguard_status;       /* (p) PaX segvguard enabled */
-	int	 hr_pax_segvguard_debug;        /* (p) PaX segvguard debug */
 	int	 hr_pax_segvguard_expiry;       /* (p) Number of seconds to expire an entry */
 	int	 hr_pax_segvguard_suspension;   /* (p) Number of seconds to suspend an application */
 	int	 hr_pax_segvguard_maxcrashes;   /* (p) Maximum number of crashes before suspending application */
@@ -99,19 +98,22 @@ void pax_init_prison(struct prison *pr);
  * ASLR related functions
  */
 int pax_aslr_active(struct proc *p);
-void pax_aslr_init_vmspace(struct proc *p);
-void pax_aslr_init_vmspace32(struct proc *p);
 #ifdef PAX_ASLR
 void pax_aslr_init_prison(struct prison *pr);
 void pax_aslr_init_prison32(struct prison *pr);
+void pax_aslr_init_vmspace(struct proc *p);
+void pax_aslr_init_vmspace32(struct proc *p);
 #else
 #define	pax_aslr_init_prison(pr)	do {} while (0)
 #define	pax_aslr_init_prison32(pr)	do {} while (0)
+#define	pax_aslr_init_vmspace		NULL
+#define	pax_aslr_init_vmspace32		NULL
 #endif
 void pax_aslr_init(struct image_params *imgp);
 void pax_aslr_execbase(struct proc *p, u_long *et_dyn_addrp);
 void pax_aslr_mmap(struct proc *p, vm_offset_t *addr, 
     vm_offset_t orig_addr, int flags);
+void pax_aslr_rtld(struct proc *p, vm_offset_t *addr);
 uint32_t pax_aslr_setup_flags(struct image_params *imgp, uint32_t mode);
 void pax_aslr_stack(struct proc *p, uintptr_t *addr);
 void pax_aslr_stack_adjust(struct proc *p, u_long *ssiz);
@@ -212,14 +214,16 @@ int pax_ptrace_hardening(struct thread *td);
 #define	PAX_NOTE_NOSEGVGUARD	0x00000020
 #define	PAX_NOTE_ASLR		0x00000040
 #define	PAX_NOTE_NOASLR		0x00000080
+#define	PAX_NOTE_SHLIBRANDOM	0x00000100
+#define	PAX_NOTE_NOSHLIBRANDOM	0x00000200
 
 #define	PAX_NOTE_RESERVED0	0x40000000
 #define	PAX_NOTE_FINALIZED	0x80000000
 
 #define PAX_NOTE_ALL_ENABLED	\
-			(PAX_NOTE_PAGEEXEC | PAX_NOTE_MPROTECT | PAX_NOTE_SEGVGUARD | PAX_NOTE_ASLR)
+    (PAX_NOTE_PAGEEXEC | PAX_NOTE_MPROTECT | PAX_NOTE_SEGVGUARD | PAX_NOTE_ASLR | PAX_NOTE_SHLIBRANDOM)
 #define PAX_NOTE_ALL_DISABLED	\
-			(PAX_NOTE_NOPAGEEXEC | PAX_NOTE_NOMPROTECT | PAX_NOTE_NOSEGVGUARD | PAX_NOTE_NOASLR)
+    (PAX_NOTE_NOPAGEEXEC | PAX_NOTE_NOMPROTECT | PAX_NOTE_NOSEGVGUARD | PAX_NOTE_NOASLR | PAX_NOTE_NOSHLIBRANDOM)
 #define PAX_NOTE_ALL	(PAX_NOTE_ALL_ENABLED | PAX_NOTE_ALL_DISABLED)
 
-#endif /* _SYS_PAX_H */
+#endif /* !_SYS_PAX_H */
