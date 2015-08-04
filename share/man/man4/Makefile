@@ -216,6 +216,8 @@ MAN=	aac.4 \
 	iwnfw.4 \
 	ixgb.4 \
 	ixgbe.4 \
+	ixl.4 \
+	ixlv.4 \
 	jme.4 \
 	joy.4 \
 	kbdmux.4 \
@@ -380,6 +382,7 @@ MAN=	aac.4 \
 	${_pflog.4} \
 	${_pfsync.4} \
 	pim.4 \
+	pms.4 \
 	polling.4 \
 	ppbus.4 \
 	ppc.4 \
@@ -620,6 +623,8 @@ MLINKS+=ixgb.4 if_ixgb.4
 MLINKS+=ixgbe.4 ix.4
 MLINKS+=ixgbe.4 if_ix.4
 MLINKS+=ixgbe.4 if_ixgbe.4
+MLINKS+=ixl.4 if_ixl.4
+MLINKS+=ixlv.4 if_ixlv.4
 MLINKS+=jme.4 if_jme.4
 MLINKS+=kue.4 if_kue.4
 MLINKS+=lagg.4 trunk.4
@@ -653,6 +658,7 @@ MLINKS+=pccbb.4 cbb.4
 MLINKS+=pcm.4 snd.4 \
 	pcm.4 sound.4
 MLINKS+=pcn.4 if_pcn.4
+MLINKS+=pms.4 pmspcv.4
 MLINKS+=ral.4 if_ral.4
 MLINKS+=re.4 if_re.4
 MLINKS+=rl.4 if_rl.4

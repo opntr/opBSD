@@ -116,6 +116,45 @@
 	<entry>16&nbsp;June&nbsp;2015</entry>
 	<entry><para>Multiple vulnerabilities</para></entry>
       </row>
+
+      <row>
+	<entry><link
+	    xlink:href="&security.url;/FreeBSD-SA-15:12.openssl.asc">FreeBSD-SA-15:12.openssl</link></entry>
+	<entry>9&nbsp;July&nbsp;2015</entry>
+	<entry><para>OpenSSL alternate chains certificate forgery
+	    vulnerability (Note: This does not affect
+	    &os;&nbsp;10.1-RELEASE)</para></entry>
+      </row>
+
+      <row>
+	<entry><link
+	    xlink:href="&security.url;/FreeBSD-SA-15:13.tcp.asc">FreeBSD-SA-15:13.tcp</link></entry>
+	<entry>21&nbsp;July&nbsp;2015</entry>
+	<entry><para>resource exhaustion due to sessions stuck in
+	    <literal>LAST_ACK</literal> state.</para></entry>
+      </row>
+
+      <row>
+	<entry><link
+	    xlink:href="&security.url;/FreeBSD-SA-15:14.bsdpatch.asc">FreeBSD-SA-15:14.bsdpatch</link></entry>
+	<entry>28&nbsp;July&nbsp;2015</entry>
+	<entry><para>Shell injection vulnerability</para></entry>
+      </row>
+
+      <row>
+	<entry><link
+	    xlink:href="&security.url;/FreeBSD-SA-15:15.tcp.asc">FreeBSD-SA-15:15.tcp</link></entry>
+	<entry>28&nbsp;July&nbsp;2015</entry>
+	<entry><para>resource exhaustion in <acronym>TCP</acronym>
+	    reassembly</para></entry>
+      </row>
+
+      <row>
+	<entry><link
+	    xlink:href="&security.url;/FreeBSD-SA-15:16.openssh.asc">FreeBSD-SA-15:16.openssh</link></entry>
+	<entry>28&nbsp;July&nbsp;2015</entry>
+	<entry><para>Multiple vulnerabilities</para></entry>
+      </row>
     </tbody>
   </tgroup>
 </informaltable>
