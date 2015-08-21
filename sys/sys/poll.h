@@ -117,6 +117,10 @@ int	ppoll(struct pollfd _pfd[], nfds_t _nfds,
 #endif
 __END_DECLS
 
+#ifdef __BSD_FORTIFY
+#include <secure/_poll.h>
+#endif
+
 #endif /* !_KERNEL */
 
 #endif /* !_SYS_POLL_H_ */

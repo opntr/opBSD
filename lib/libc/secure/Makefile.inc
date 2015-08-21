@@ -14,9 +14,9 @@ SRCS+=	\
 # Sources which contains FORTIFY_SOURCE functions:
 #SRCS+=	
 
-
 # Sources which contains FORTIFY_SOURCE functions,
 # but live in .h files under sys/sys
-#SRCS+=	
+SRCS+=	\
+	__poll_chk.c
 
 SYM_MAPS+=    ${LIBC_SRCTOP}/secure/Symbol.map

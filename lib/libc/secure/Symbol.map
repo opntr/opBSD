@@ -19,6 +19,8 @@ FBSD_1.3 {
 
 FBSD_1.4 {
 	__fortify_chk_fail;
+	__poll_chk;
+	__ppoll_chk;
 	__secure_fail;
 };
 
