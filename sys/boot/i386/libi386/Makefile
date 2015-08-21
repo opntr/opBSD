@@ -1,5 +1,10 @@
 # $FreeBSD$
 #
+
+.include <bsd.opts.mk>
+
+MK_FORTIFY=		no
+
 LIB=			i386
 INTERNALLIB=
 

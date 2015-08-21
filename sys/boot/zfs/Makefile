@@ -1,5 +1,9 @@
 # $FreeBSD$
 
+.include <bsd.opts.mk>
+
+MK_FORTIFY=	no
+
 LIB=		zfsboot
 INTERNALLIB=
 

@@ -1,6 +1,7 @@
 # $FreeBSD$
 
 .include <src.opts.mk>
+MK_FORTIFY=	no
 
 PROG=		ubldr
 NEWVERSWHAT=	"U-Boot loader" ${MACHINE_ARCH}

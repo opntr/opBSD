@@ -1,5 +1,9 @@
 # $FreeBSD$
 
+.include <src.opts.mk>
+
+MK_FORTIFY.gcc=	no
+
 PRIVATELIB=	yes
 LIB=	sqlite3
 SHLIB_MAJOR?=	0

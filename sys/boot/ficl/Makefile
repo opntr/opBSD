@@ -1,6 +1,10 @@
 # $FreeBSD$
 #
 
+.include <bsd.opts.mk>
+
+MK_FORTIFY=	no
+
 FICLDIR?=	${.CURDIR}
 
 .if defined(FICL32)

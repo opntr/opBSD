@@ -2,6 +2,10 @@
 
 .include "../Makefile.inc0"
 
+.include <src.opts.mk>
+
+MK_FORTIFY.gcc=	no
+
 .PATH: ${SRCDIR}/binutils ${SRCDIR}/binutils/doc
 
 PROG=	objdump

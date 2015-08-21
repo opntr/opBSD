@@ -2,6 +2,8 @@
 
 .include <src.opts.mk>
 
+MK_FORTIFY=	no
+
 .PATH: ${.CURDIR}/../../common
 
 LIB=		efi_fdt

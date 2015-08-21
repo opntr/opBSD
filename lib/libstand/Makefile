@@ -8,6 +8,7 @@
 
 MK_PROFILE=	no
 MK_SSP=		no
+MK_FORTIFY=	no
 
 .include <src.opts.mk>
 

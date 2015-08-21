@@ -1,5 +1,9 @@
 # $FreeBSD$
 
+.include <src.opts.mk>
+
+MK_FORTIFY=	no
+
 LIB=	efi
 INTERNALLIB=
 

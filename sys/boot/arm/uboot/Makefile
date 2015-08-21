@@ -2,6 +2,8 @@
 
 .include <src.opts.mk>
 
+MK_FORTIFY=	no
+
 FILES=		ubldr ubldr.bin
 
 NEWVERSWHAT=	"U-Boot loader" ${MACHINE_ARCH}

@@ -6,6 +6,7 @@
 
 .include <src.opts.mk>
 MK_SSP=		no
+MK_FORTIFY=	no
 
 PROG?=		ld-elf.so.1
 SRCS=		rtld_start.S \

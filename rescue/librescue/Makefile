@@ -4,6 +4,7 @@
 
 .include <src.opts.mk>
 MK_SSP=		no
+MK_FORTIFY=	no
 
 # Certain library entries have hard-coded references to
 # /bin, /sbin, etc, that require those entries to be

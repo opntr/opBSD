@@ -8,6 +8,7 @@ MAN=
 .if ${COMPILER_TYPE} != "gcc"
 
 MK_SSP=		no
+MK_FORTIFY=	no
 
 PROG=		loader.sym
 INTERNALPROG=

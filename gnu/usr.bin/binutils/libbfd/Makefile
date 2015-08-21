@@ -4,6 +4,10 @@
 
 .PATH: ${SRCDIR}/bfd ${SRCDIR}/opcodes
 
+.include <src.opts.mk>
+
+MK_FORTIFY.gcc=	no
+
 LIB=	bfd
 SRCS+=	archive.c \
 	archive64.c \

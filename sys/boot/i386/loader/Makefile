@@ -2,6 +2,7 @@
 
 .include <src.opts.mk>
 MK_SSP=		no
+MK_FORTIFY=	no
 
 LOADER?=	loader
 PROG=		${LOADER}.sym

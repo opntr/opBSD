@@ -10,6 +10,7 @@ MAN=
 
 .include <src.opts.mk>
 MK_SSP=		no
+MK_FORTIFY=	no
 
 LIBSTAND_SRC=	${.CURDIR}/../../../lib/libstand
 LIBC_SRC=	${LIBSTAND_SRC}/../libc

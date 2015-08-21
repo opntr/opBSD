@@ -12,6 +12,7 @@ SHLIBDIR?= /lib
 
 .include <src.opts.mk>
 MK_SSP=	no
+MK_FORTIFY=	no
 
 LIB=thr
 SHLIB_MAJOR= 3

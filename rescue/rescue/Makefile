@@ -5,6 +5,7 @@
 
 MAN=
 MK_SSP=	no
+MK_FORTIFY=	no
 
 PROG=	rescue
 BINDIR?=/rescue
