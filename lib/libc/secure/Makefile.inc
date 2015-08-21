@@ -12,7 +12,12 @@ SRCS+=	\
 	stack_protector_compat.c
 
 # Sources which contains FORTIFY_SOURCE functions:
-#SRCS+=	
+SRCS+=	\
+	__fgets_chk.c \
+	__fread_chk.c \
+	__fwrite_chk.c \
+	__vsnprintf_chk.c \
+	__vsprintf_chk.c
 
 # Sources which contains FORTIFY_SOURCE functions,
 # but live in .h files under sys/sys

@@ -521,4 +521,9 @@ extern int __isthreaded;
 #endif /* __cplusplus */
 
 __END_DECLS
+
+#if defined(__BSD_FORTIFY)
+#include <secure/_stdio.h>
+#endif
+
 #endif /* !_STDIO_H_ */
