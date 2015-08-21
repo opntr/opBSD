@@ -16,12 +16,17 @@ SRCS+=	\
 	__fgets_chk.c \
 	__fread_chk.c \
 	__fwrite_chk.c \
+	__getcwd_chk.c \
 	__memccpy_chk.c \
 	__memchr_chk.c \
 	__memcpy_chk.c \
 	__memmove_chk.c \
 	__memrchr_chk.c \
 	__memset_chk.c \
+	__pread_chk.c \
+	__read_chk.c \
+	__readlink_chk.c \
+	__readlinkat_chk.c \
 	__stpcpy_chk.c \
 	__stpncpy_chk.c \
 	__strcat_chk.c \

@@ -589,4 +589,8 @@ extern int optreset;			/* getopt(3) external variable */
 #endif /* __BSD_VISIBLE */
 __END_DECLS
 
+#if defined(__BSD_FORTIFY)
+#include <secure/_unistd.h>
+#endif
+
 #endif /* !_UNISTD_H_ */
