@@ -31,6 +31,7 @@ FBSD_1.4 {
 	__poll_chk;
 	__ppoll_chk;
 	__recvfrom_chk;
+	__rindex_chk;
 	__snprintf_chk;
 	__sprintf_chk;
 	__stpcpy_chk;
