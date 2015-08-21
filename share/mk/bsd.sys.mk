@@ -153,6 +153,16 @@ SSP_CFLAGS?=	-fstack-protector
 CFLAGS+=	${SSP_CFLAGS}
 .endif # SSP && !ARM && !MIPS
 
+# Allow to override the MK_FORTIFY settings per compiler basis.
+.if defined(MK_FORTIFY.${COMPILER_TYPE})
+MK_FORTIFY=	${MK_FORTIFY.${COMPILER_TYPE}}
+.endif
+
+.if ${MK_FORTIFY} != "no"
+FORTIFY_CFLAGS?=	-D_FORTIFY_SOURCE=1
+CFLAGS+=	${FORTIFY_CFLAGS}
+.endif # FORTIFY
+
 # Allow user-specified additional warning flags, plus compiler specific flag overrides.
 # Unless we've overriden this...
 .if ${MK_WARNS} != "no"

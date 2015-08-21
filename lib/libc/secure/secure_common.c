@@ -27,63 +27,54 @@
  *
  */
 
+#undef _FORTIFY_SOURCE
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include "namespace.h"
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
-#include <secure/security.h>
+#include <errno.h>
 #include <link.h>
+#include <signal.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
+#include "un-namespace.h"
+
 #include "libc_private.h"
 
-extern int __sysctl(const int *name, u_int namelen, void *oldp,
-    size_t *oldlenp, void *newp, size_t newlen);
+static void __fail(const char *) __dead2;
 
-long __stack_chk_guard[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-static void __guard_setup(void) __attribute__((__constructor__, __used__));
-void __stack_chk_fail(void) __dead2;
-
-/*LINTED used*/
+/*ARGSUSED*/
 static void
-__guard_setup(void)
+__fail(const char *msg)
 {
-	static const int mib[2] = { CTL_KERN, KERN_ARND };
-	size_t len;
-	int error;
+	struct sigaction sa;
+	sigset_t mask;
 
-	if (__stack_chk_guard[0] != 0)
-		return;
-	error = _elf_aux_info(AT_CANARY, __stack_chk_guard,
-	    sizeof(__stack_chk_guard));
-	if (error == 0 && __stack_chk_guard[0] != 0)
-		return;
+	/* Immediately block all signal handlers from running code */
+	(void)sigfillset(&mask);
+	(void)sigdelset(&mask, SIGABRT);
+	(void)_sigprocmask(SIG_BLOCK, &mask, NULL);
 
-	len = sizeof(__stack_chk_guard);
-	if (__sysctl(mib, nitems(mib), __stack_chk_guard, &len, NULL, 0) ==
-	    -1 || len != sizeof(__stack_chk_guard)) {
-		/* If sysctl was unsuccessful, use the "terminator canary". */
-		((unsigned char *)(void *)__stack_chk_guard)[0] = 0;
-		((unsigned char *)(void *)__stack_chk_guard)[1] = 0;
-		((unsigned char *)(void *)__stack_chk_guard)[2] = '\n';
-		((unsigned char *)(void *)__stack_chk_guard)[3] = 255;
-	}
+	/* This may fail on a chroot jail... */
+	syslog(LOG_CRIT, "%s", msg);
+
+	(void)memset(&sa, 0, sizeof(sa));
+	(void)sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sa.sa_handler = SIG_DFL;
+	(void)sigaction(SIGABRT, &sa, NULL);
+	(void)kill(getpid(), SIGABRT);
+	_exit(127);
 }
 
 void
-__stack_chk_fail(void)
+__secure_fail(const char *msg)
 {
 
-	__secure_fail("stack overflow detected; terminated");
+	__fail(msg);
 }
-
-void
-__chk_fail(void)
-{
-
-	__secure_fail("buffer overflow detected; terminated");
-}
-
-#ifndef PIC
-__weak_reference(__stack_chk_fail, __stack_chk_fail_local);
-#endif

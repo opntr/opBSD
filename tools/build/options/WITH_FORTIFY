@@ -1,0 +1,4 @@
+.\" $FreeBSD$
+Set to not build world with FORTIFY_SOURCE.
+
+FORTIFY_SOURCE is a libc feature provides primitive support for detecting buffer overflows in various functions which operate on memory areas and strings. A limited set of buffer overflows can be detected with this feature, but it provides an additional level of validation for some functions which are the origin of buffer overflow flaws.

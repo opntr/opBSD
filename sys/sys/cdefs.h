@@ -544,6 +544,26 @@
 #define	__gnu_inline
 #endif
 
+#if __has_attribute(error) || __GNUC_PREREQ__(4, 3)
+#define	__error_attr(msg)	__attribute__((__error__(msg)))
+#else
+#define	__error_attr(msg)
+#endif
+
+/* FORTIFY_SOURCE related defines. */
+#if __GNUC_PREREQ__(4, 1) && defined(_FORTIFY_SOURCE) && _FORTIFY_SOURCE > 0 && \
+    defined(__OPTIMIZE__) && __OPTIMIZE__ > 0 && !defined(lint)
+#define	__BSD_FORTIFY	1
+#if _FORTIFY_SOURCE >= 2
+#define	__bos(s)	__builtin_object_size((s), 1)
+#else
+#define	__bos(s)	__builtin_object_size((s), 0)
+#endif
+#define	__bos0(s)	__builtin_object_size((s), 0)
+#define	__FORTIFY_INLINE	extern __inline __always_inline __gnu_inline
+#endif /* !_FORTIFY_SOURCE */
+#define	__FORTIFY_UNKNOWN_SIZE	((size_t) -1)
+
 /* Compiler-dependent macros that rely on FreeBSD-specific extensions. */
 #if defined(__FreeBSD_cc_version) && __FreeBSD_cc_version >= 300001 && \
     defined(__GNUC__) && !defined(__INTEL_COMPILER)

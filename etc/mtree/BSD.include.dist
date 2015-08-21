@@ -321,6 +321,8 @@
         mac_partition
         ..
     ..
+    secure
+    ..
     ssp
     ..
     sys

@@ -6,7 +6,17 @@
 
 # Sources common to both syscall interfaces:
 SRCS+=	\
+	fortify_source.c \
+	secure_common.c \
 	stack_protector.c \
 	stack_protector_compat.c
+
+# Sources which contains FORTIFY_SOURCE functions:
+#SRCS+=	
+
+
+# Sources which contains FORTIFY_SOURCE functions,
+# but live in .h files under sys/sys
+#SRCS+=	
 
 SYM_MAPS+=    ${LIBC_SRCTOP}/secure/Symbol.map
