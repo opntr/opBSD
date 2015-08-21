@@ -22,6 +22,7 @@ FBSD_1.4 {
 	__poll_chk;
 	__ppoll_chk;
 	__recvfrom_chk;
+	__umask_chk;
 	__secure_fail;
 };
 

@@ -18,6 +18,7 @@ SRCS+=	\
 # but live in .h files under sys/sys
 SRCS+=	\
 	__poll_chk.c \
-	__recvfrom_chk.c
+	__recvfrom_chk.c \
+	__umask_chk.c
 
 SYM_MAPS+=    ${LIBC_SRCTOP}/secure/Symbol.map

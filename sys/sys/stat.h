@@ -356,6 +356,11 @@ int	mkfifoat(int, const char *, mode_t);
 int	mknodat(int, const char *, mode_t, dev_t);
 #endif
 __END_DECLS
+
+#ifdef __BSD_FORTIFY
+#include <secure/_stat.h>
+#endif
+
 #endif /* !_KERNEL */
 
 #endif /* !_SYS_STAT_H_ */
