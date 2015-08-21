@@ -61,6 +61,9 @@
 #ifndef	STAND_H
 #define	STAND_H
 
+#undef _FORTIFY_SOURCE
+#undef __BSD_FORTIFY
+
 #include <sys/types.h>
 #include <sys/cdefs.h>
 #include <sys/stat.h>

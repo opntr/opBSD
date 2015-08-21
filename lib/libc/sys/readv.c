@@ -30,6 +30,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#undef _FORTIFY_SOURCE
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 

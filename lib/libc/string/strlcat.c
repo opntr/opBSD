@@ -16,6 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#undef _FORTIFY_SOURCE
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 

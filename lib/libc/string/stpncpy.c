@@ -24,6 +24,7 @@
  * SUCH DAMAGE.
  */
 
+#undef _FORTIFY_SOURCE
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 

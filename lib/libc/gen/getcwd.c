@@ -30,6 +30,8 @@
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)getcwd.c	8.5 (Berkeley) 2/7/95";
 #endif /* LIBC_SCCS and not lint */
+
+#undef _FORTIFY_SOURCE
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
