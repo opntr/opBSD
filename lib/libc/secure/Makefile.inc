@@ -16,6 +16,24 @@ SRCS+=	\
 	__fgets_chk.c \
 	__fread_chk.c \
 	__fwrite_chk.c \
+	__memccpy_chk.c \
+	__memchr_chk.c \
+	__memcpy_chk.c \
+	__memmove_chk.c \
+	__memrchr_chk.c \
+	__memset_chk.c \
+	__stpcpy_chk.c \
+	__stpncpy_chk.c \
+	__strcat_chk.c \
+	__strchr_chk.c \
+	__strchrnul_chk.c \
+	__strcpy_chk.c \
+	__strlcat_chk.c \
+	__strlcpy_chk.c \
+	__strlen_chk.c \
+	__strncat_chk.c \
+	__strncpy_chk.c \
+	__strrchr_chk.c \
 	__vsnprintf_chk.c \
 	__vsprintf_chk.c
 

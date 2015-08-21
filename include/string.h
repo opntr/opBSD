@@ -141,4 +141,8 @@ void	 swab(const void * __restrict, void * __restrict, ssize_t);
 #endif
 __END_DECLS
 
+#if defined(__BSD_FORTIFY)
+#include <secure/_string.h>
+#endif
+
 #endif /* _STRING_H_ */
