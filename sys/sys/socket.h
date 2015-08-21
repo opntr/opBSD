@@ -630,6 +630,10 @@ int	socket(int, int, int);
 int	socketpair(int, int, int, int *);
 __END_DECLS
 
+#ifdef __BSD_FORTIFY
+#include <secure/_socket.h>
+#endif
+
 #endif /* !_KERNEL */
 
 #ifdef _KERNEL
