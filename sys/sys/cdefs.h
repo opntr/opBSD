@@ -555,11 +555,11 @@
     defined(__OPTIMIZE__) && __OPTIMIZE__ > 0 && !defined(lint)
 #define	__BSD_FORTIFY	1
 #if _FORTIFY_SOURCE >= 2
-#define	__bos(s)	__builtin_object_size((s), 1)
+#define	__object_size(s)	__builtin_object_size((s), 1)
 #else
-#define	__bos(s)	__builtin_object_size((s), 0)
+#define	__object_size(s)	__builtin_object_size((s), 0)
 #endif
-#define	__bos0(s)	__builtin_object_size((s), 0)
+#define	__object_size_type0(s)	__builtin_object_size((s), 0)
 #define	__FORTIFY_INLINE	extern __inline __always_inline __gnu_inline
 #endif /* !_FORTIFY_SOURCE */
 #define	__FORTIFY_UNKNOWN_SIZE	((size_t) -1)

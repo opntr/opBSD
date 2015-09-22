@@ -78,7 +78,7 @@ extern int	__vsnprintf_real(char * __restrict, size_t, const char * __restrict, 
 __FORTIFY_INLINE __printflike(3, 0) int
 vsnprintf(char *_dest, size_t _size, const char *_format, __va_list _ap)
 {
-	size_t _bos = __bos(_dest);
+	size_t _bos = __object_size(_dest);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -92,7 +92,7 @@ vsnprintf(char *_dest, size_t _size, const char *_format, __va_list _ap)
 __FORTIFY_INLINE __printflike(2, 0) int
 vsprintf(char *_dest, const char *_format, __va_list _ap)
 {
-	size_t _bos = __bos(_dest);
+	size_t _bos = __object_size(_dest);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -106,14 +106,14 @@ vsprintf(char *_dest, const char *_format, __va_list _ap)
 #if __ISO_C_VISIBLE >= 1999
 #if !__has_builtin(__builtin_va_arg_pack) && !__GNUC_PREREQ__(4, 3)	/* defined(__clang__) */
 #if !defined(snprintf) && !defined(__cplusplus)
-#define	__wrap_snprintf(_dest, _size, ...)	__snprintf_chk(_dest, _size, 0, __bos(_dest), __VA_ARGS__)
+#define	__wrap_snprintf(_dest, _size, ...)	__snprintf_chk(_dest, _size, 0, __object_size(_dest), __VA_ARGS__)
 #define	snprintf(...)	__wrap_snprintf(__VA_ARGS__)
 #endif /* !snprintf */
 #else /* __GNUC_PREREQ__(4, 3) */
 __FORTIFY_INLINE __printflike(3, 4) int
 snprintf(char *_dest, size_t _size, const char *_format, ...)
 {
-	size_t _bos = __bos(_dest);
+	size_t _bos = __object_size(_dest);
 
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__snprintf_real(_dest, _size, _format,
@@ -127,14 +127,14 @@ snprintf(char *_dest, size_t _size, const char *_format, ...)
 
 #if !__has_builtin(__builtin_va_arg_pack) && !__GNUC_PREREQ__(4, 3)	/* defined(__clang__) */
 #if !defined(sprintf) && !defined(__cplusplus)
-#define	__wrap_sprintf(_dest, ...)	__sprintf_chk(_dest, 0, __bos(_dest), __VA_ARGS__)
+#define	__wrap_sprintf(_dest, ...)	__sprintf_chk(_dest, 0, __object_size(_dest), __VA_ARGS__)
 #define	sprintf(...)	__wrap_sprintf(__VA_ARGS__)
 #endif /* !sprintf */
 #else /* __GNUC_PREREQ__(4, 3) */
 __FORTIFY_INLINE __printflike(2, 3) int
 sprintf(char *_dest, const char *_format, ...)
 {
-	size_t _bos = __bos(_dest);
+	size_t _bos = __object_size(_dest);
 
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__sprintf_real(_dest, _format,
@@ -149,7 +149,7 @@ sprintf(char *_dest, const char *_format, ...)
 __FORTIFY_INLINE char *
 fgets(char *_buf, int _n, FILE *_stream)
 {
-	size_t _bos = __bos(_buf);
+	size_t _bos = __object_size(_buf);
 
 #ifndef __clang__
 	/*
@@ -187,7 +187,7 @@ fgets(char *_buf, int _n, FILE *_stream)
 __FORTIFY_INLINE size_t
 fread(void * __restrict _ptr, size_t _size, size_t _nmemb, FILE * __restrict _stream)
 {
-	size_t _bos = __bos0(_ptr);
+	size_t _bos = __object_size_type0(_ptr);
 #ifndef __clang__
 	size_t _total;
 
@@ -212,7 +212,7 @@ fread(void * __restrict _ptr, size_t _size, size_t _nmemb, FILE * __restrict _st
 __FORTIFY_INLINE size_t
 fwrite(const void * __restrict _ptr, size_t _size, size_t _nmemb, FILE * __restrict _stream)
 {
-	size_t _bos = __bos0(_ptr);
+	size_t _bos = __object_size_type0(_ptr);
 #ifndef __clang__
 	size_t _total;
 

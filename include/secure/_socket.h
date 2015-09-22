@@ -52,7 +52,7 @@ __errordecl(__recvfrom_error, "recvfrom called with size bigger than buffer");
 __FORTIFY_INLINE ssize_t
 recvfrom(int _s, void *_buf, size_t _len, int _flags, struct sockaddr * __restrict _from, socklen_t * __restrict _fromlen)
 {
-	size_t _bos = __bos0(_buf);
+	size_t _bos = __object_size_type0(_buf);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)

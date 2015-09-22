@@ -54,7 +54,7 @@ __errordecl(__ppoll_too_small_error, "ppoll: pollfd array smaller than fd count"
 __FORTIFY_INLINE int
 poll(struct pollfd *_fds, nfds_t _fd_count, int _timeout)
 {
-	size_t _bos = __bos(_fds);
+	size_t _bos = __object_size(_fds);
 
 #ifdef __clang__
 	return (__poll_chk(_fds, _fd_count, _timeout, _bos));
@@ -73,7 +73,7 @@ poll(struct pollfd *_fds, nfds_t _fd_count, int _timeout)
 __FORTIFY_INLINE int
 ppoll(struct pollfd *_fds, nfds_t _fd_count, const struct timespec *_timeout, const sigset_t *_mask)
 {
-	size_t _bos = __bos(_fds);
+	size_t _bos = __object_size(_fds);
 
 #ifdef __clang__
 	return (__ppoll_chk(_fds, _fd_count, _timeout, _mask, _bos));

@@ -51,7 +51,7 @@ extern char	*__rindex_real(const char *, int) __RENAME(rindex);
 __FORTIFY_INLINE void
 bcopy(const void *_s, void *_d, size_t _l)
 {
-	size_t _bos = __bos0(_d);
+	size_t _bos = __object_size_type0(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -67,7 +67,7 @@ bcopy(const void *_s, void *_d, size_t _l)
 __FORTIFY_INLINE void
 bzero(void *_s, size_t _n)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -83,7 +83,7 @@ bzero(void *_s, size_t _n)
 __FORTIFY_INLINE char *
 rindex(const char *_s, int _c)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 #ifndef __clang__
 	size_t _slen;
 

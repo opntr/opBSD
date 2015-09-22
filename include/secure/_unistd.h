@@ -69,7 +69,7 @@ __FORTIFY_INLINE
 char *
 getcwd(char *_buf, size_t _size)
 {
-	size_t	_bos = __bos(_buf);
+	size_t	_bos = __object_size(_buf);
 
 #ifdef __clang__
 	/*
@@ -99,7 +99,7 @@ getcwd(char *_buf, size_t _size)
 __FORTIFY_INLINE ssize_t
 pread(int _fd, void *_buf, size_t _count, off_t _offset)
 {
-	size_t _bos = __bos0(_buf);
+	size_t _bos = __object_size_type0(_buf);
 
 #ifndef __clang__
 	if (__builtin_constant_p(_count) && (_count > SSIZE_MAX))
@@ -123,7 +123,7 @@ pread(int _fd, void *_buf, size_t _count, off_t _offset)
 __FORTIFY_INLINE ssize_t
 read(int _fd, void *_buf, size_t _count)
 {
-	size_t _bos = __bos0(_buf);
+	size_t _bos = __object_size_type0(_buf);
 
 #ifndef __clang__
 	if (__builtin_constant_p(_count) && (_count > SSIZE_MAX))
@@ -148,7 +148,7 @@ read(int _fd, void *_buf, size_t _count)
 __FORTIFY_INLINE ssize_t
 readlink(const char *_path, char *_buf, size_t _size)
 {
-	size_t _bos = __bos(_buf);
+	size_t _bos = __object_size(_buf);
 
 #ifndef __clang__
 	if (__builtin_constant_p(_size) && (_size > SSIZE_MAX))
@@ -173,7 +173,7 @@ readlink(const char *_path, char *_buf, size_t _size)
 __FORTIFY_INLINE ssize_t
 readlinkat(int _dirfd, const char *_path, char *_buf, size_t _size)
 {
-	size_t _bos = __bos(_buf);
+	size_t _bos = __object_size(_buf);
 
 #ifndef __clang__
 	if (__builtin_constant_p(_size) && (_size > SSIZE_MAX))

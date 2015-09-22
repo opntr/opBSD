@@ -89,7 +89,7 @@ extern char	*__strrchr_real(const char *, int) __RENAME(strrchr);
 __FORTIFY_INLINE void *
 memccpy(void * __restrict _d, const void * __restrict _s, int _c, size_t _n)
 {
-	size_t _bos = __bos0(_d);
+	size_t _bos = __object_size_type0(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -104,7 +104,7 @@ memccpy(void * __restrict _d, const void * __restrict _s, int _c, size_t _n)
 __FORTIFY_INLINE void *
 memchr(const void *_s, int _c, size_t _n)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -129,7 +129,7 @@ memchr(const void *_s, int _c, size_t _n)
 __FORTIFY_INLINE void *
 memrchr(const void *_s, int _c, size_t _n)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -150,7 +150,7 @@ memrchr(const void *_s, int _c, size_t _n)
 __FORTIFY_INLINE void *
 memcpy(void * __restrict _d, const void * __restrict _s, size_t _n)
 {
-	size_t _bos = __bos0(_d);
+	size_t _bos = __object_size_type0(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -164,7 +164,7 @@ memcpy(void * __restrict _d, const void * __restrict _s, size_t _n)
 __FORTIFY_INLINE void *
 memmove(void *_d, const void *_s, size_t _n)
 {
-	size_t _bos = __bos0(_d);
+	size_t _bos = __object_size_type0(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -179,7 +179,7 @@ memmove(void *_d, const void *_s, size_t _n)
 __FORTIFY_INLINE char *
 stpcpy(char * __restrict _d, const char * __restrict _s)
 {
-	size_t _bos = __bos(_d);
+	size_t _bos = __object_size(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -194,7 +194,7 @@ stpcpy(char * __restrict _d, const char * __restrict _s)
 __FORTIFY_INLINE char *
 strcpy(char * __restrict _d, const char * __restrict _s)
 {
-	size_t _bos = __bos(_d);
+	size_t _bos = __object_size(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -209,8 +209,8 @@ strcpy(char * __restrict _d, const char * __restrict _s)
 __FORTIFY_INLINE char *
 stpncpy(char * __restrict _d, const char * __restrict _s, size_t _n)
 {
-	size_t _d_bos = __bos(_d);
-	size_t _s_bos = __bos(_s);
+	size_t _d_bos = __object_size(_d);
+	size_t _s_bos = __object_size(_s);
 #ifndef __clang__
 	size_t _slen;
 
@@ -236,8 +236,8 @@ stpncpy(char * __restrict _d, const char * __restrict _s, size_t _n)
 __FORTIFY_INLINE char *
 strncpy(char * __restrict _d, const char * __restrict _s, size_t _n)
 {
-	size_t _d_bos = __bos(_d);
-	size_t _s_bos = __bos(_s);
+	size_t _d_bos = __object_size(_d);
+	size_t _s_bos = __object_size(_s);
 #ifndef __clang__
 	size_t _slen;
 
@@ -262,7 +262,7 @@ strncpy(char * __restrict _d, const char * __restrict _s, size_t _n)
 __FORTIFY_INLINE char *
 strcat(char * __restrict _d, const char * __restrict _s)
 {
-	size_t _bos = __bos(_d);
+	size_t _bos = __object_size(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -276,7 +276,7 @@ strcat(char * __restrict _d, const char * __restrict _s)
 __FORTIFY_INLINE char *
 strncat(char * __restrict _d, const char * __restrict _s, size_t _n)
 {
-	size_t _bos = __bos(_d);
+	size_t _bos = __object_size(_d);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -290,7 +290,7 @@ strncat(char * __restrict _d, const char * __restrict _s, size_t _n)
 __FORTIFY_INLINE void *
 memset(void *_s, int _c, size_t _n)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 
 #ifndef __clang__
 	if (_bos == __FORTIFY_UNKNOWN_SIZE)
@@ -305,7 +305,7 @@ memset(void *_s, int _c, size_t _n)
 __FORTIFY_INLINE size_t
 strlcpy(char * __restrict _d, const char * __restrict _s, size_t _n)
 {
-	size_t _bos = __bos(_d);
+	size_t _bos = __object_size(_d);
 
 #ifndef __clang__
 	/* Compiler doesn't know destination size. Don't call __strlcpy_chk. */
@@ -329,7 +329,7 @@ strlcpy(char * __restrict _d, const char * __restrict _s, size_t _n)
 __FORTIFY_INLINE size_t
 strlcat(char * __restrict _d, const char * __restrict _s, size_t _n)
 {
-	size_t _bos = __bos(_d);
+	size_t _bos = __object_size(_d);
 
 #ifndef __clang__
 	/* Compiler doesn't know destination size. Don't call __strlcat_chk. */
@@ -352,7 +352,7 @@ strlcat(char * __restrict _d, const char * __restrict _s, size_t _n)
 __FORTIFY_INLINE size_t
 strlen(const char *_s)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 #ifndef __clang__
 	size_t _slen;
 
@@ -371,7 +371,7 @@ strlen(const char *_s)
 __FORTIFY_INLINE char *
 strchr(const char *_s, int _c)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 #ifndef __clang__
 	size_t _slen;
 
@@ -396,7 +396,7 @@ strchr(const char *_s, int _c)
 __FORTIFY_INLINE char *
 strchrnul(const char *_s, int _c)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 #ifndef __clang__
 	size_t _slen;
 
@@ -420,7 +420,7 @@ strchrnul(const char *_s, int _c)
 __FORTIFY_INLINE char *
 strrchr(const char *_s, int _c)
 {
-	size_t _bos = __bos(_s);
+	size_t _bos = __object_size(_s);
 #ifndef __clang__
 	size_t _slen;
 
