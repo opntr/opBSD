@@ -43,9 +43,6 @@ __recvfrom_chk(int s, void *buf, size_t len, size_t bos,
     socklen_t * __restrict fromlen)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (recvfrom(s, buf, len, flags, from, fromlen));
-
 	if (__predict_false(len > bos))
 		__fortify_chk_fail("recvfrom: prevented write past end of buffer");
 

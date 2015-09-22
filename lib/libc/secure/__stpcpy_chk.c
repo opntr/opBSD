@@ -44,13 +44,6 @@ __stpcpy_chk(char *dest, const char *src, size_t bos)
 	/* TODO:optimize so we don't scan src twice. */
 	size_t src_len;
 
-	/*
-	 * Compiler doesn 't know destination size.
-	 * Fallback to the original function.
-	 */
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (stpcpy(dest, src));
-
 	src_len = strlen(src) + 1;
 	if (__predict_false(src_len > bos))
 		__fortify_chk_fail("stpcpy: prevented write past end of buffer");

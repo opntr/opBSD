@@ -42,9 +42,6 @@ char *
 __stpncpy_chk(char *__restrict d, const char *__restrict s, size_t n, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (stpncpy(d, s, n));
-
 	if (__predict_false(n > bos))
 		__fortify_chk_fail("stpncpy: prevented write past end of buffer");
 
@@ -65,12 +62,6 @@ __stpncpy_chk2(char *__restrict d, const char *__restrict s, size_t n, size_t d_
 	char *_d;
 	const char *_s = s;
 	size_t s_copy_len ;
-
-	if (__predict_false(d_bos == __FORTIFY_UNKNOWN_SIZE))
-		return (stpncpy(d, s, n));
-
-	if (__predict_false(s_bos == __FORTIFY_UNKNOWN_SIZE))
-		return (__stpncpy_chk(d, s, n, d_bos));
 
 	if (__predict_false(n > d_bos))
 		__fortify_chk_fail("stpncpy: prevented write past end of buffer");

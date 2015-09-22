@@ -56,9 +56,6 @@ __strlen_chk(const char *s, size_t bos)
 {
 	size_t ret;
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (strlen(s));
-
 	ret = strlen(s);
 	if (__predict_false(ret >= bos))
 		__fortify_chk_fail("strlen: detected read past end of buffer");

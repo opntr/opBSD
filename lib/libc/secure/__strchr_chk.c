@@ -41,9 +41,6 @@
 char *
 __strchr_chk(const char *p, int ch, size_t bos)
 {
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (strchr(p, ch));
-
 	for (;; ++p, bos--) {
 		if (__predict_false(bos == 0))
 			__fortify_chk_fail("strchr: prevented read past end of buffer");

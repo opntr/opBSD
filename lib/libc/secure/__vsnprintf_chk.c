@@ -43,9 +43,6 @@ int
 __vsnprintf_chk(char *d, size_t n, int flags, size_t bos, const char *fmt, va_list va)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (vsnprintf(d, n, fmt, va));
-
 	if (__predict_false(n > bos))
 		__fortify_chk_fail(
 		    "vsnprintf: prevented write past end of buffer");
@@ -59,14 +56,6 @@ __snprintf_chk(char *d, size_t n, int flags, size_t bos, const char *fmt, ...)
 {
 	va_list va;
 	int result;
-
-	if (bos == __FORTIFY_UNKNOWN_SIZE) {
-		va_start(va, fmt);
-		result = vsnprintf(d, n, fmt, va);
-		va_end(va);
-
-		return (result);
-	}
 
 	va_start(va, fmt);
 	result = __vsnprintf_chk(d, n, flags, bos, fmt, va);

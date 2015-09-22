@@ -42,9 +42,6 @@ size_t
 __strlcpy_chk(char *d, const char *s, size_t n, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (strlcpy(d, s, n));
-
 	if (__predict_false(n > bos))
 		__fortify_chk_fail("strlcpy: prevented write past end of buffer");
 

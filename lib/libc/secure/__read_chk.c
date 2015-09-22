@@ -42,9 +42,6 @@ ssize_t
 __read_chk(int fd, void *buf, size_t count, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (read(fd, buf, count));
-
 	if (__predict_false(count > bos))
 		__fortify_chk_fail("read: prevented write past end of buffer");
 

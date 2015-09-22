@@ -42,11 +42,8 @@ __fread_chk(void *__restrict ptr, size_t size, size_t nmemb, FILE * __restrict s
 {
 	size_t total;
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (fread(ptr, size, nmemb, stream));
-
 	if (__predict_false(__size_mul_overflow(size, nmemb, &total))) {
-		//overflow: trigger the error path in fread
+		/* Overflow: trigger the error path in fread. */
 		return (fread(ptr, size, nmemb, stream));
 	}
 	if (__predict_false(total > bos))

@@ -42,13 +42,10 @@ char *
 __fgets_chk(char *buf, int n, FILE *stream, size_t bos)
 {
 
-	if (bos == __FORTIFY_UNKNOWN_SIZE)
-		return (fgets(buf, n, stream));
-
 	if (n < 0)
 		__fortify_chk_fail("fgets: buffer size < 0");
 
-	if (((size_t)n) > bos)
+	if (n > bos)
 		__fortify_chk_fail("fgets: prevented write past end of buffer");
 
 	return (fgets(buf, n, stream));

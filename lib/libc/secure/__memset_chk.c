@@ -42,9 +42,6 @@ void *
 __memset_chk(void *d, int c, size_t n, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return memset(d, c, n);
-
 	if (__predict_false(n > bos))
 		__fortify_chk_fail("memset: prevented write past end of buffer");
 

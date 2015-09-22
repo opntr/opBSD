@@ -42,11 +42,8 @@ __fwrite_chk(const void * __restrict ptr, size_t size, size_t nmemb, FILE * __re
 {
 	size_t total;
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (fwrite(ptr, size, nmemb, stream));
-
 	if (__predict_false(__size_mul_overflow(size, nmemb, &total))) {
-		// overflow: trigger the error path in fwrite
+		/* Overflow: trigger the error path in fwrite. */
 		return (fwrite(ptr, size, nmemb, stream));
 	}
 

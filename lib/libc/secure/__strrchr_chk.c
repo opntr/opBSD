@@ -43,9 +43,6 @@ __strrchr_chk(const char *p, int ch, size_t bos)
 {
 	char *save;
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (strrchr(p, ch));
-
 	for (save = NULL;; ++p, bos--) {
 		if (bos == 0)
 			__fortify_chk_fail(

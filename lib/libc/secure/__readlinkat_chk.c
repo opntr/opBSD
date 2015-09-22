@@ -42,9 +42,6 @@ ssize_t
 __readlinkat_chk(int dirfd, const char *path, char *buf, size_t size, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (readlinkat(dirfd, path, buf, size));
-
 	if (__predict_false(size > bos))
 		__fortify_chk_fail("readlinkat: prevented write past end of buffer");
 

@@ -42,9 +42,6 @@ __memccpy_chk(void *dest, const void *src, int c, size_t n, size_t bos)
 	void *ret;
 	size_t len;
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (memccpy(dest, src, c, n));
-
 	if (__predict_false(n > bos))
 		__fortify_chk_fail("memccpy: prevented write past end of buffer");
 

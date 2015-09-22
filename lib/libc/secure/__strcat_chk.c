@@ -44,13 +44,6 @@ __strcat_chk(char *__restrict d, const char *__restrict s, size_t bos)
 	char *save = d;
 	size_t d_len;
 
-	/*
-	 * Compiler doesn 't know destination size.
-	 * Fallback to the original function.
-	 */
-	if (bos == __FORTIFY_UNKNOWN_SIZE)
-		return (strcat(d, s));
-
 	d_len = __strlen_chk(d, bos);
 
 	d += d_len;

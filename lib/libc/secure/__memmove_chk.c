@@ -42,13 +42,6 @@ void *
 __memmove_chk(void *d, const void *s, size_t n, size_t bos)
 {
 
-	/*
-	 * Compiler doesn 't know dination size.
-	 * Fallback to the original function.
-	 */
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (memmove(d, s, n));
-
 	if (__predict_false(n > bos))
 		__fortify_chk_fail("memmove: prevented write past end of buffer");
 

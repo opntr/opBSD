@@ -42,9 +42,6 @@ ssize_t
 __readlink_chk(const char *path, char *buf, size_t size, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (readlink(path, buf, size));
-
 	if (__predict_false(size > bos))
 		__fortify_chk_fail("readlink: prevented write past end of buffer");
 

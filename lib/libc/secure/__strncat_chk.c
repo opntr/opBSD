@@ -44,9 +44,6 @@ __strncat_chk(char *__restrict d, const char *__restrict s, size_t n, size_t bos
 	size_t d_len;
 	char *_d;
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (strncat(d, s, n));
-
 	if (n == 0)
 		return (d);
 

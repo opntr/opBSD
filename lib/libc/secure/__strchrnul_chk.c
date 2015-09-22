@@ -43,9 +43,6 @@ char *
 __strchrnul_chk(const char *p, int ch, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (strchrnul(p, ch));
-
 	for (;; ++p, bos--) {
 		if (__predict_false(bos == 0))
 			__fortify_chk_fail(

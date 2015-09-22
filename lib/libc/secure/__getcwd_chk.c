@@ -41,9 +41,6 @@ char *
 __getcwd_chk(char* buf, size_t size, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (getcwd(buf, size));
-
 	if (__predict_false(size > bos))
 		__fortify_chk_fail("getcwd: prevented write past end of buffer");
 

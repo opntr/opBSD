@@ -42,9 +42,6 @@ ssize_t
 __pread_chk(int fd, void *buf, size_t count, off_t offset, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (pread(fd, buf, count, offset));
-
 	if (__predict_false(count > bos))
 		__fortify_chk_fail("pread: prevented write past end of buffer");
 

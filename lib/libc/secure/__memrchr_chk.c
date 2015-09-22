@@ -41,9 +41,6 @@ void *
 __memrchr_chk(const void *s, int c, size_t n, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (memrchr(s, c, n));
-
 	if (__predict_false(n > bos))
 		__fortify_chk_fail("memrchr: prevented read past end of buffer");
 

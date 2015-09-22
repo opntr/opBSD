@@ -41,9 +41,6 @@ int
 __poll_chk(struct pollfd *fds, nfds_t fd_count, int timeout, size_t bos)
 {
 
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (poll(fds, fd_count, timeout));
-
 	if (__predict_false(bos / sizeof(*fds) < fd_count))
 		__fortify_chk_fail("poll: pollfd array smaller than fd count");
 
@@ -53,9 +50,6 @@ __poll_chk(struct pollfd *fds, nfds_t fd_count, int timeout, size_t bos)
 int
 __ppoll_chk(struct pollfd *fds, nfds_t fd_count, const struct timespec *timeout, const sigset_t *mask, size_t bos)
 {
-
-	if (__predict_false(bos == __FORTIFY_UNKNOWN_SIZE))
-		return (ppoll(fds, fd_count, timeout, mask));
 
 	if (__predict_false(bos / sizeof(*fds) < fd_count))
 		__fortify_chk_fail("ppoll: pollfd array smaller than fd count");
