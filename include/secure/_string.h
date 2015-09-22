@@ -92,7 +92,7 @@ memccpy(void * __restrict _d, const void * __restrict _s, int _c, size_t _n)
 	size_t _bos = __bos0(_d);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__memccpy_real(_d, _s, _c, _n));
 #endif
 
@@ -107,7 +107,7 @@ memchr(const void *_s, int _c, size_t _n)
 	size_t _bos = __bos(_s);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__memchr_real(_s, _c, _n));
 
 	if (__builtin_constant_p(_n) && (_n > _bos))
@@ -132,7 +132,7 @@ memrchr(const void *_s, int _c, size_t _n)
 	size_t _bos = __bos(_s);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__memrchr_real(_s, _c, _n));
 
 	if (__builtin_constant_p(_n) && (_n > _bos))
@@ -153,7 +153,7 @@ memcpy(void * __restrict _d, const void * __restrict _s, size_t _n)
 	size_t _bos = __bos0(_d);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__memcpy_real(_d, _s, _n));
 #endif
 
@@ -167,7 +167,7 @@ memmove(void *_d, const void *_s, size_t _n)
 	size_t _bos = __bos0(_d);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__memmove_real(_d, _s, _n));
 #endif
 
@@ -182,7 +182,7 @@ stpcpy(char * __restrict _d, const char * __restrict _s)
 	size_t _bos = __bos(_d);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__stpcpy_real(_d, _s));
 #endif
 
@@ -197,7 +197,7 @@ strcpy(char * __restrict _d, const char * __restrict _s)
 	size_t _bos = __bos(_d);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strcpy_real(_d, _s));
 #endif
 
@@ -265,7 +265,7 @@ strcat(char * __restrict _d, const char * __restrict _s)
 	size_t _bos = __bos(_d);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strcat_real(_d, _s));
 #endif
 
@@ -279,7 +279,7 @@ strncat(char * __restrict _d, const char * __restrict _s, size_t _n)
 	size_t _bos = __bos(_d);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strncat_real(_d, _s, _n));
 #endif
 
@@ -293,7 +293,7 @@ memset(void *_s, int _c, size_t _n)
 	size_t _bos = __bos(_s);
 
 #ifndef __clang__
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__memset_real(_s, _c, _n));
 #endif
 
@@ -309,7 +309,7 @@ strlcpy(char * __restrict _d, const char * __restrict _s, size_t _n)
 
 #ifndef __clang__
 	/* Compiler doesn't know destination size. Don't call __strlcpy_chk. */
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strlcpy_real(_d, _s, _n));
 
 	/*
@@ -333,7 +333,7 @@ strlcat(char * __restrict _d, const char * __restrict _s, size_t _n)
 
 #ifndef __clang__
 	/* Compiler doesn't know destination size. Don't call __strlcat_chk. */
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strlcat_real(_d, _s, _n));
 
 	/*
@@ -357,7 +357,7 @@ strlen(const char *_s)
 	size_t _slen;
 
 	/* Compiler doesn't know destination size. Don't call __strlen_chk. */
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strlen_real(_s));
 
 	_slen = __builtin_strlen(_s);
@@ -376,7 +376,7 @@ strchr(const char *_s, int _c)
 	size_t _slen;
 
 	/* Compiler doesn't know destination size. Don't call __strchr_chk. */
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strchr_real(_s, _c));
 
 	/*
@@ -401,7 +401,7 @@ strchrnul(const char *_s, int _c)
 	size_t _slen;
 
 	/* Compiler doesn't know destination size. Don't call __strchr_chk. */
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strchrnul_real(_s, _c));
 	/*
 	 * Compiler can prove, at compile time, that the passed in size
@@ -425,7 +425,7 @@ strrchr(const char *_s, int _c)
 	size_t _slen;
 
 	/* Compiler doesn't know destination size. Don't call __strrchr_chk. */
-	if (__predict_false(_bos == __FORTIFY_UNKNOWN_SIZE))
+	if (_bos == __FORTIFY_UNKNOWN_SIZE)
 		return (__strrchr_real(_s, _c));
 
 	/*
