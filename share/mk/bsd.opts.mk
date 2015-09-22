@@ -51,6 +51,7 @@ __<bsd.opts.mk>__:
 __DEFAULT_YES_OPTIONS = \
     ASSERT_DEBUG \
     DOCCOMPRESS \
+    FORTIFY \
     INCLUDES \
     INSTALLLIB \
     KERBEROS \
@@ -68,7 +69,6 @@ __DEFAULT_YES_OPTIONS = \
 __DEFAULT_NO_OPTIONS = \
     CTF \
     DEBUG_FILES \
-    FORTIFY \
     INSTALL_AS_USER \
     STALE_STAGED
 
