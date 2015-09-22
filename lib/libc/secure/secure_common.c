@@ -38,6 +38,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 #include <errno.h>
 #include <link.h>
+#include <stdio.h>
 #include <signal.h>
 #include <string.h>
 #include <syslog.h>
@@ -62,6 +63,8 @@ __fail(const char *msg)
 
 	/* This may fail on a chroot jail... */
 	syslog(LOG_CRIT, "%s", msg);
+	/* Print out the the standard error too. */
+	(void)fprintf(stderr, "%s", msg);
 
 	(void)memset(&sa, 0, sizeof(sa));
 	(void)sigemptyset(&sa.sa_mask);
