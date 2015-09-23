@@ -1018,7 +1018,7 @@ new_session(session_t *sprev, struct ttyent *typ)
 
 	sp->se_flags |= SE_PRESENT;
 
-	sp->se_device = malloc(sizeof(_PATH_DEV) + strlen(typ->ty_name));
+	sp->se_device = malloc(sizeof(_PATH_DEV) + strlen(typ->ty_name) + 1);
 	sprintf(sp->se_device, "%s%s", _PATH_DEV, typ->ty_name);
 
 	/*
