@@ -47,8 +47,12 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 #include "un-namespace.h"
 
+#include <stdlib.h>
+#include <execinfo.h>
+
 #include "libc_private.h"
 
+static __inline __always_inline void bt(void);
 static void __fail(const char *) __dead2;
 
 /*ARGSUSED*/
@@ -68,6 +72,8 @@ __fail(const char *msg)
 	/* Print out the the standard error too. */
 	(void)fprintf(stderr, "%s", msg);
 
+	bt();
+
 	(void)memset(&sa, 0, sizeof(sa));
 	(void)sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
@@ -82,4 +88,29 @@ __secure_fail(const char *msg)
 {
 
 	__fail(msg);
+}
+
+static __inline __always_inline void
+bt(void)
+{
+	int j, nptrs;
+	void *buffer[100];
+	char **strings;
+
+	nptrs = backtrace(buffer, 100);
+	(void)fprintf(stderr, "FORTIFY_SOURCE: backtrace() returned %d addresses.\n", nptrs);
+
+	/* The call backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)
+	 *            would produce similar output to the following: */
+
+	strings = backtrace_symbols(buffer, nptrs);
+	if (strings == NULL) {
+		(void)fprintf(stderr, "FORTIFY_SOURCE: generating backtrace failed.\n");
+		return;
+	}
+
+	for (j = 0; j < nptrs; j++)
+		(void)fprintf(stderr, "%s\n", strings[j]);
+
+	free(strings);
 }

@@ -6,6 +6,8 @@ SRCDIR=	${TOP}/libelf
 
 .PATH:	${SRCDIR}
 
+INSTALL_PIC_ARCHIVE=
+
 LIB=	elf
 
 SRCS=	elf.c							\

@@ -2,6 +2,8 @@
 
 LIBEXECINFO=	${.CURDIR}/../../contrib/libexecinfo
 
+INSTALL_PIC_ARCHIVE=
+
 LIB=		execinfo
 SHLIB_MAJOR=	1
 
