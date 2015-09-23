@@ -50,7 +50,6 @@ __<bsd.opts.mk>__:
 
 __DEFAULT_YES_OPTIONS = \
     ASSERT_DEBUG \
-    DEBUG_FILES \
     DOCCOMPRESS \
     FORTIFY \
     INCLUDES \
@@ -69,6 +68,7 @@ __DEFAULT_YES_OPTIONS = \
 
 __DEFAULT_NO_OPTIONS = \
     CTF \
+    DEBUG_FILES \
     INSTALL_AS_USER \
     STALE_STAGED
 

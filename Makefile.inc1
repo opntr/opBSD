@@ -1682,11 +1682,7 @@ libraries: .MAKE
 #
 # static libgcc.a prerequisite for shared libc
 #
-_prereq_libs= gnu/lib/libssp/libssp_nonshared
-_prereq_libs+= gnu/lib/libgcc
-_prereq_libs+= lib/libcompiler_rt
-_prereq_libs+= lib/libexecinfo
-_prereq_libs+= lib/libelf
+_prereq_libs= gnu/lib/libssp/libssp_nonshared gnu/lib/libgcc lib/libcompiler_rt
 
 # These dependencies are not automatically generated:
 #
