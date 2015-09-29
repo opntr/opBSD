@@ -62,8 +62,8 @@ static void pax_log_ulog(const char *prefix, const char *fmt, va_list ap);
 		    "\010NOASLR"	\
 		    "\011SHLIBRANDOM"	\
 		    "\012NOSHLIBRANDOM"		\
-		    "\013<f10>"		\
-		    "\014<f11>"		\
+		    "\013DISALLOWMAP32BIT"	\
+		    "\014NODISALLOWMAP32BIT"	\
 		    "\015<f12>"		\
 		    "\016<f13>"		\
 		    "\017<f14>"		\
