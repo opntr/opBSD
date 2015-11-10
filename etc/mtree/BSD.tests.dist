@@ -10,7 +10,11 @@
         ..
         date
         ..
+        dd
+        ..
         expr
+        ..
+        ls
         ..
         mv
         ..
@@ -104,6 +108,8 @@
             regex
                 data
                 ..
+            ..
+            rpc
             ..
             ssp
             ..
@@ -228,6 +234,10 @@
             unlink
             ..
         ..
+        posixshm
+        ..
+        vfs
+        ..
         vm
         ..
     ..
@@ -338,6 +348,8 @@
         ..
         cmp
         ..
+        col
+        ..
         comm
         ..
         cut
@@ -389,6 +401,8 @@
         etcupdate
         ..
         fstyp
+        ..
+        makefs
         ..
         newsyslog
         ..

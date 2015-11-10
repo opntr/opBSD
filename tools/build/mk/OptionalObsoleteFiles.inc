@@ -154,6 +154,7 @@ OLD_FILES+=usr/share/man/man8/authpf-noip.8.gz
 OLD_FILES+=etc/autofs/include_ldap
 OLD_FILES+=etc/autofs/special_hosts
 OLD_FILES+=etc/autofs/special_media
+OLD_FILES+=etc/autofs/special_noauto
 OLD_FILES+=etc/autofs/special_null
 OLD_FILES+=etc/auto_master
 OLD_FILES+=etc/rc.d/automount
@@ -171,6 +172,10 @@ OLD_DIRS+=etc/autofs
 .endif
 
 .if ${MK_BHYVE} == no
+OLD_FILES+=usr/lib/libvmmapi.a
+OLD_FILES+=usr/lib/libvmmapi.so
+OLD_LIBS+=usr/lib/libvmmapi.so.5
+OLD_FILES+=usr/include/vmmapi.h
 OLD_FILES+=usr/sbin/bhyve
 OLD_FILES+=usr/sbin/bhyvectl
 OLD_FILES+=usr/sbin/bhyveload

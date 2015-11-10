@@ -11,6 +11,8 @@ TESTS_SUBDIRS+=		kern
 TESTS_SUBDIRS+=		kqueue
 TESTS_SUBDIRS+=		mqueue
 TESTS_SUBDIRS+=		netinet
+TESTS_SUBDIRS+=		posixshm
+TESTS_SUBDIRS+=		vfs
 TESTS_SUBDIRS+=		vm
 
 # Items not integrated into kyua runs by default
