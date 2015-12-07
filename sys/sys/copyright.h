@@ -28,6 +28,10 @@
 
 /* Copyrights macros  */
 
+/* Add a FreeBSD vendor copyright here */
+#define	COPYRIGHT_Vendor \
+	"Copyright (c) 2013-2015 The HardenedBSD Project.\n"
+
 /* FreeBSD */
 #define COPYRIGHT_FreeBSD \
 	"Copyright (c) 1992-2015 The FreeBSD Project.\n"
@@ -48,5 +52,6 @@
 #define COPYRIGHT_PC98
 #endif
 
-char copyright[] = COPYRIGHT_FreeBSD COPYRIGHT_PC98 COPYRIGHT_UCB;
+char copyright[] = COPYRIGHT_Vendor COPYRIGHT_FreeBSD COPYRIGHT_PC98 \
+    COPYRIGHT_UCB;
 char trademark[] = TRADEMARK_Foundation;
