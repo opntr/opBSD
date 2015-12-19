@@ -44,6 +44,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/jail.h>
 #include <sys/ktr.h>
 #include <sys/libkern.h>
+#include <sys/mman.h>
 #include <sys/pax.h>
 #include <sys/proc.h>
 #include <sys/stat.h>
@@ -95,9 +96,13 @@ struct prison *
 pax_get_prison(struct proc *p)
 {
 
-	/* p can be NULL with kernel threads, so use prison0 */
+	/* p can be NULL with kernel threads, so use prison0. */
 	if (p == NULL || p->p_ucred == NULL)
 		return (&prison0);
+
+#if 0
+	PROC_LOCK_ASSERT(p, MA_OWNED);
+#endif
 
 	return (p->p_ucred->cr_prison);
 }
@@ -113,7 +118,7 @@ pax_get_prison_td(struct thread *td)
 }
 
 /*
- * @brief Get the current PAX status from process.
+ * @brief Get the current PaX status from process.
  *
  * @param p		The controlled process pointer.
  * @param flags		Where to write the current state.
@@ -155,7 +160,7 @@ pax_check_conflicting_modes(uint32_t mode)
 }
 
 /*
- * @bried Initialize the new process PAX state
+ * @bried Initialize the new process PaX state
  *
  * @param imgp		Executable image's structure.
  * @param mode		Requested mode.
