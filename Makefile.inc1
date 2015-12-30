@@ -1000,7 +1000,7 @@ KERNCONF=${KERNFAST}
 .if ${TARGET_ARCH} == "powerpc64"
 KERNCONF?=	GENERIC64
 .else
-KERNCONF?=	GENERIC
+KERNCONF?=	HARDENEDBSD
 .endif
 INSTKERNNAME?=	kernel
 
@@ -1701,6 +1701,8 @@ _lib_libradius=	lib/libradius
 .if ${MK_OFED} != "no"
 _ofed_lib=	contrib/ofed/usr.lib/
 .endif
+
+lib/liblzma__L: lib/libthr__L
 
 _generic_libs=	${_cddl_lib} gnu/lib ${_kerberos5_lib} lib ${_secure_lib} usr.bin/lex/lib ${_ofed_lib}
 .for _DIR in ${LOCAL_LIB_DIRS}
