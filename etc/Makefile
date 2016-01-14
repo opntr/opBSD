@@ -19,6 +19,7 @@ BIN1=	crontab \
 	fbtab \
 	gettytab \
 	group \
+	hbsd-update.conf \
 	hosts \
 	hosts.allow \
 	hosts.equiv \
@@ -84,10 +85,6 @@ BIN1+= apmd.conf
 
 .if ${MK_AUTOFS} != "no"
 BIN1+= auto_master
-.endif
-
-.if ${MK_BSNMP} != "no"
-BIN1+= snmpd.config
 .endif
 
 .if ${MK_FREEBSD_UPDATE} != "no"
@@ -218,6 +215,11 @@ distribution:
 		${BIN2} ${DESTDIR}/etc; \
 	    ${INSTALL} -o ${BINOWN} -g ${BINGRP} -m 600 \
 		master.passwd nsmb.conf opieaccess ${DESTDIR}/etc;
+.if ${MK_BSNMP} != "no"
+	cd ${.CURDIR}; \
+	    ${INSTALL} -o ${BINOWN} -g ${BINGRP} -m 600 \
+		snmpd.config ${DESTDIR}/etc;
+.endif
 .if ${MK_AT} == "no"
 	sed -i "" -e 's;.*/usr/libexec/atrun;#&;' ${DESTDIR}/etc/crontab
 .endif
