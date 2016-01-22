@@ -28,6 +28,7 @@ if [ -e ${2} ]; then
 	exit 1
 fi
 
+echo 'hw.usb.no_boot_wait=0' > ${1}/boot/loader.conf.local
 echo '/dev/ufs/HardenedBSD_Install / ufs ro,noatime 1 1' > ${1}/etc/fstab
 echo 'root_rw_mount="NO"' > ${1}/etc/rc.conf.local
 makefs -B little -o label=HardenedBSD_Install,version=2 ${2} ${1}
@@ -35,6 +36,7 @@ if [ $? -ne 0 ]; then
 	echo "makefs failed"
 	exit 1
 fi
+rm ${1}/boot/loader.conf.local
 rm ${1}/etc/fstab
 rm ${1}/etc/rc.conf.local
 
