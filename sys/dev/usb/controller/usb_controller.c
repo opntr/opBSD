@@ -90,7 +90,7 @@ SYSCTL_INT(_hw_usb_ctrl, OID_AUTO, debug, CTLFLAG_RW, &usb_ctrl_debug, 0,
 #endif
 
 #if USB_HAVE_ROOT_MOUNT_HOLD
-static int usb_no_boot_wait = 0;
+static int usb_no_boot_wait = 1;
 TUNABLE_INT("hw.usb.no_boot_wait", &usb_no_boot_wait);
 SYSCTL_INT(_hw_usb, OID_AUTO, no_boot_wait, CTLFLAG_RD|CTLFLAG_TUN, &usb_no_boot_wait, 0,
     "No USB device enumerate waiting at boot.");
