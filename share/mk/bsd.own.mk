@@ -310,7 +310,6 @@ __DEFAULT_YES_OPTIONS = \
     GPL_DTC \
     GROFF \
     HAST \
-    HBSD_UPDATE \
     HTML \
     ICONV \
     INET \
@@ -401,6 +400,7 @@ __DEFAULT_NO_OPTIONS = \
     DEBUG_FILES \
     FREEBSD_UPDATE \
     HESIOD \
+    HBSD_UPDATE \
     INSTALL_AS_USER \
     LIB32 \
     LLDB \
