@@ -1018,13 +1018,9 @@ msdosfs_rename(ap)
 	int error;
 	u_long cn, pcl;
 	daddr_t bn;
-	struct denode *fddep;	/* from file's parent directory	 */
 	struct msdosfsmount *pmp;
 	struct direntry *dotdotp;
 	struct buf *bp;
-
-	fddep = VTODE(ap->a_fdvp);
-	pmp = fddep->de_pmp;
 
 	pmp = VFSTOMSDOSFS(fdvp->v_mount);
 
