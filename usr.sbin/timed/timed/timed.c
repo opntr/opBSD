@@ -229,12 +229,9 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* choose a unique seed for random number generation */
+	sequence = arc4random();     /* initial seq number */
+
 	(void)gettimeofday(&ntime, NULL);
-	srandom(ntime.tv_sec + ntime.tv_usec);
-
-	sequence = random();     /* initial seq number */
-
 	/* rounds kernel variable time to multiple of 5 ms. */
 	ntime.tv_sec = 0;
 	ntime.tv_usec = -((ntime.tv_usec/1000) % 5) * 1000;
@@ -458,7 +455,7 @@ suppress(struct sockaddr_in *addr, char *name, struct netinfo *net)
 	if (trace)
 		fprintf(fd, "suppress: %s\n", name);
 	tgt = *addr;
-	(void)strcpy(tname, name);
+	(void)strlcpy(tname, name, sizeof(tname));
 
 	while (0 != readmsg(TSP_ANY, ANYADDR, &wait, net)) {
 		if (trace)
