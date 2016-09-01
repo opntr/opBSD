@@ -2400,7 +2400,7 @@ check_symlinks(struct archive_write_disk *a)
 		r = lstat(a->name, &st);
 		if (r != 0) {
 			/* We've hit a dir that doesn't exist; stop now. */
-			if (errno == ENOENT)
+			if (errno == ENOENT) {
 				break;
 			else
 				return (ARCHIVE_FAILED);
