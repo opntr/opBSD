@@ -470,7 +470,9 @@ ATF_TC_HEAD(mmap_va0, tc)
 ATF_TC_BODY(mmap_va0, tc)
 {
 	int flags = MAP_ANON | MAP_FIXED | MAP_PRIVATE;
+#ifndef HARDENEDBSD
 	size_t len = sizeof(int);
+#endif
 	void *map;
 	int val;
 
@@ -479,9 +481,18 @@ ATF_TC_BODY(mmap_va0, tc)
 	 * is restricted as noted in security(7), the syscall should fail.
 	 */
 #ifdef __FreeBSD__
+#ifdef HARDENEDBSD
+	/*
+	 * On HardenedBSD, we removed the possibility of the mappin
+	 * of the first page.
+	 * So the tries to map them should fail.
+	 */
+	val = 0; /* 0 == disable map at zero */
+#else /* !HARDENEDBSD */
 	if (sysctlbyname("security.bsd.map_at_zero", &val, &len, NULL, 0) != 0)
 		atf_tc_fail("failed to read security.bsd.map_at_zero");
 	val = !val; /* 1 == enable  map at zero */
+#endif /* HARDENEDBSD */
 #endif
 #ifdef __NetBSD__
 	if (sysctlbyname("vm.user_va0_disable", &val, &len, NULL, 0) != 0)
