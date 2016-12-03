@@ -108,6 +108,7 @@ MAN=	aac.4 \
 	cue.4 \
 	cxgb.4 \
 	cxgbe.4 \
+	cxgbev.4 \
 	cy.4 \
 	da.4 \
 	dc.4 \
@@ -176,12 +177,11 @@ MAN=	aac.4 \
 	${_hptmv.4} \
 	${_hptnr.4} \
 	${_hptrr.4} \
-	hv_ata_pci_disengage.4 \
-	hv_kvp.4 \
-	hv_netvsc.4 \
-	hv_storvsc.4 \
-	hv_utils.4 \
-	hv_vmbus.4 \
+	${_hv_kvp.4} \
+	${_hv_netvsc.4} \
+	${_hv_storvsc.4} \
+	${_hv_utils.4} \
+	${_hv_vmbus.4} \
 	hwpmc.4 \
 	ichsmb.4 \
 	${_ichwd.4} \
@@ -588,6 +588,9 @@ MLINKS+=cxgb.4 if_cxgb.4
 MLINKS+=cxgbe.4 if_cxgbe.4 \
 	cxgbe.4 cxl.4 \
 	cxgbe.4 if_cxl.4
+MLINKS+=cxgbev.4 if_cxgbev.4 \
+	cxgbev.4 cxlv.4 \
+	cxgbev.4 if_cxlv.4
 MLINKS+=dc.4 if_dc.4
 MLINKS+=de.4 if_de.4
 MLINKS+=disc.4 if_disc.4
@@ -751,6 +754,11 @@ _hptiop.4=	hptiop.4
 _hptmv.4=	hptmv.4
 _hptnr.4=	hptnr.4
 _hptrr.4=	hptrr.4
+_hv_kvp.4=	hv_kvp.4
+_hv_netvsc.4=	hv_netvsc.4
+_hv_storvsc.4=	hv_storvsc.4
+_hv_utils.4=	hv_utils.4
+_hv_vmbus.4=	hv_vmbus.4
 _i8254.4=	i8254.4
 _ichwd.4=	ichwd.4
 _if_bxe.4=	if_bxe.4
