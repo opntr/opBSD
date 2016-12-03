@@ -1780,14 +1780,9 @@ falloc_noinstall(struct thread *td, struct file **resultfp)
 	    priv_check(td, PRIV_MAXFILES) != 0) ||
 	    openfiles >= maxfiles) {
 		if (ppsratecheck(&lastfail, &curfail, 1)) {
-<<<<<<< HEAD
 			printf("kern.maxfiles limit exceeded by uid %i "
 			    "td_name %s, please see tuning(7).\n",
 			    td->td_ucred->cr_ruid, td->td_name);
-=======
-			printf("kern.maxfiles limit exceeded by uid %i, (%s) "
-			    "please see tuning(7).\n", td->td_ucred->cr_ruid, td->td_proc->p_comm);
->>>>>>> hardenedbsd/hardened/10-stable/master
 		}
 		return (ENFILE);
 	}
