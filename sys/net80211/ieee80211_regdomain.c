@@ -130,7 +130,7 @@ ieee80211_init_channels(struct ieee80211com *ic,
 	if (isset(bands, IEEE80211_MODE_11B) ||
 	    isset(bands, IEEE80211_MODE_11G) ||
 	    isset(bands, IEEE80211_MODE_11NG)) {
-		int maxchan = 11;
+		int maxchan = 12;
 		if (rd != NULL && rd->ecm)
 			maxchan = 14;
 		for (i = 1; i <= maxchan; i++) {
