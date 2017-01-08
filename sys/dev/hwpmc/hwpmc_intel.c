@@ -179,6 +179,21 @@ pmc_intel_initialize(void)
 			cputype = PMC_CPU_INTEL_IVYBRIDGE_XEON;
 			nclasses = 3;
 			break;
+		case 0x4e:
+		case 0x5e:
+			cputype = PMC_CPU_INTEL_SKYLAKE;
+			nclasses = 3;
+			break;
+		case 0x3D:
+		case 0x47:
+			cputype = PMC_CPU_INTEL_BROADWELL;
+			nclasses = 3;
+			break;
+		case 0x4f:
+		case 0x56:
+			cputype = PMC_CPU_INTEL_BROADWELL_XEON;
+			nclasses = 3;
+			break;
 		case 0x3F:	/* Per Intel document 325462-045US 09/2014. */
 		case 0x46:	/* Per Intel document 325462-045US 09/2014. */
 			        /* Should 46 be XEON. probably its own? */
@@ -227,6 +242,9 @@ pmc_intel_initialize(void)
 		 */
 	case PMC_CPU_INTEL_ATOM:
 	case PMC_CPU_INTEL_ATOM_SILVERMONT:
+	case PMC_CPU_INTEL_BROADWELL:
+	case PMC_CPU_INTEL_BROADWELL_XEON:
+	case PMC_CPU_INTEL_SKYLAKE:
 	case PMC_CPU_INTEL_CORE:
 	case PMC_CPU_INTEL_CORE2:
 	case PMC_CPU_INTEL_CORE2EXTREME:
@@ -295,6 +313,7 @@ pmc_intel_initialize(void)
 	case PMC_CPU_INTEL_HASWELL:
 	case PMC_CPU_INTEL_SANDYBRIDGE:
 	case PMC_CPU_INTEL_WESTMERE:
+	case PMC_CPU_INTEL_BROADWELL:
 		error = pmc_uncore_initialize(pmc_mdep, ncpus);
 		break;
 	default:
@@ -319,6 +338,9 @@ pmc_intel_finalize(struct pmc_mdep *md)
 #if	defined(__i386__) || defined(__amd64__)
 	case PMC_CPU_INTEL_ATOM:
 	case PMC_CPU_INTEL_ATOM_SILVERMONT:
+	case PMC_CPU_INTEL_BROADWELL:
+	case PMC_CPU_INTEL_BROADWELL_XEON:
+	case PMC_CPU_INTEL_SKYLAKE:
 	case PMC_CPU_INTEL_CORE:
 	case PMC_CPU_INTEL_CORE2:
 	case PMC_CPU_INTEL_CORE2EXTREME:
@@ -360,6 +382,7 @@ pmc_intel_finalize(struct pmc_mdep *md)
 	 */
 #if	defined(__i386__) || defined(__amd64__)
 	switch (md->pmd_cputype) {
+	case PMC_CPU_INTEL_BROADWELL:
 	case PMC_CPU_INTEL_COREI7:
 	case PMC_CPU_INTEL_HASWELL:
 	case PMC_CPU_INTEL_SANDYBRIDGE:

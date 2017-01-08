@@ -1488,7 +1488,7 @@ pmc_process_csw_out(struct thread *td)
 				 * increasing monotonically, modulo a 64
 				 * bit wraparound.
 				 */
-				KASSERT((int64_t) tmp >= 0,
+				KASSERT(tmp >= 0,
 				    ("[pmc,%d] negative increment cpu=%d "
 				     "ri=%d newvalue=%jx saved=%jx "
 				     "incr=%jx", __LINE__, cpu, ri,
@@ -2579,13 +2579,35 @@ static int
 pmc_find_pmc(pmc_id_t pmcid, struct pmc **pmc)
 {
 
-	struct pmc *pm;
+	struct pmc *pm, *opm;
 	struct pmc_owner *po;
+	struct pmc_process *pp;
 
+	KASSERT(PMC_ID_TO_ROWINDEX(pmcid) < md->pmd_npmc,
+	    ("[pmc,%d] Illegal pmc index %d (max %d)", __LINE__,
+		PMC_ID_TO_ROWINDEX(pmcid), md->pmd_npmc));
 	PMCDBG1(PMC,FND,1, "find-pmc id=%d", pmcid);
 
-	if ((po = pmc_find_owner_descriptor(curthread->td_proc)) == NULL)
-		return ESRCH;
+	if ((po = pmc_find_owner_descriptor(curthread->td_proc)) == NULL) {
+		/*
+		 * In case of PMC_F_DESCENDANTS child processes we will not find
+		 * the current process in the owners hash list.  Find the owner
+		 * process first and from there lookup the po.
+		 */
+		if ((pp = pmc_find_process_descriptor(curthread->td_proc,
+		    PMC_FLAG_NONE)) == NULL) {
+			return ESRCH;
+		} else {
+			opm = pp->pp_pmcs[PMC_ID_TO_ROWINDEX(pmcid)].pp_pmc;
+			if (opm == NULL)
+				return ESRCH;
+			if ((opm->pm_flags & (PMC_F_ATTACHED_TO_OWNER|
+			    PMC_F_DESCENDANTS)) != (PMC_F_ATTACHED_TO_OWNER|
+			    PMC_F_DESCENDANTS))
+				return ESRCH;
+			po = opm->pm_owner;
+		}
+	}
 
 	if ((pm = pmc_find_pmc_descriptor_in_process(po, pmcid)) == NULL)
 		return EINVAL;
@@ -4178,6 +4200,7 @@ pmc_capture_user_callchain(int cpu, int ring, struct trapframe *tf)
 	struct pmc_samplebuffer *psb;
 #ifdef	INVARIANTS
 	int ncallchains;
+	int nfree;
 #endif
 
 	psb = pmc_pcpu[cpu]->pc_sb[ring];
@@ -4189,6 +4212,7 @@ pmc_capture_user_callchain(int cpu, int ring, struct trapframe *tf)
 
 #ifdef	INVARIANTS
 	ncallchains = 0;
+	nfree = 0;
 #endif
 
 	/*
@@ -4200,6 +4224,10 @@ pmc_capture_user_callchain(int cpu, int ring, struct trapframe *tf)
 	ps = psb->ps_read;
 	ps_end = psb->ps_write;
 	do {
+#ifdef	INVARIANTS
+		if (ps->ps_pmc->pm_state != PMC_STATE_RUNNING)
+			nfree++;
+#endif
 		if (ps->ps_nsamples != PMC_SAMPLE_INUSE)
 			goto next;
 		if (ps->ps_td != td)
@@ -4235,7 +4263,7 @@ next:
 			ps = psb->ps_samples;
 	} while (ps != ps_end);
 
-	KASSERT(ncallchains > 0,
+	KASSERT(ncallchains > 0 || nfree > 0,
 	    ("[pmc,%d] cpu %d didn't find a sample to collect", __LINE__,
 		cpu));
 
@@ -4694,12 +4722,20 @@ pmc_kld_unload(void *arg __unused, const char *filename __unused,
 /*
  * initialization
  */
+static const char *
+pmc_name_of_pmcclass(enum pmc_class class)
+{
 
-static const char *pmc_name_of_pmcclass[] = {
+	switch (class) {
 #undef	__PMC_CLASS
-#define	__PMC_CLASS(N) #N ,
-	__PMC_CLASSES()
-};
+#define	__PMC_CLASS(S,V,D)						\
+	case PMC_CLASS_##S:						\
+		return #S;
+	__PMC_CLASSES();
+	default:
+		return ("<unknown>");
+	}
+}
 
 /*
  * Base class initializer: allocate structure and set default classes.
@@ -4978,7 +5014,7 @@ pmc_initialize(void)
 		for (n = 0; n < (int) md->pmd_nclass; n++) {
 			pcd = &md->pmd_classdep[n];
 			printf(" %s/%d/%d/0x%b",
-			    pmc_name_of_pmcclass[pcd->pcd_class],
+			    pmc_name_of_pmcclass(pcd->pcd_class),
 			    pcd->pcd_num,
 			    pcd->pcd_width,
 			    pcd->pcd_caps,
