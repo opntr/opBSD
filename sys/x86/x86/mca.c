@@ -73,7 +73,7 @@ enum scan_mode {
  */
 struct cmc_state {
 	int	max_threshold;
-	int	last_intr;
+	time_t	last_intr;
 };
 #endif
 
@@ -535,7 +535,7 @@ cmci_update(enum scan_mode mode, int bank, int valid, struct mca_record *rec)
 	cc = &cmc_state[PCPU_GET(cpuid)][bank];
 	ctl = rdmsr(MSR_MC_CTL2(bank));
 	count = (rec->mr_status & MC_STATUS_COR_COUNT) >> 38;
-	delta = (u_int)(ticks - cc->last_intr);
+	delta = (u_int)(time_uptime - cc->last_intr);
 
 	/*
 	 * If an interrupt was received less than cmc_throttle seconds
@@ -550,9 +550,9 @@ cmci_update(enum scan_mode mode, int bank, int valid, struct mca_record *rec)
 			limit = min(limit << 1, cc->max_threshold);
 			ctl &= ~MC_CTL2_THRESHOLD;
 			ctl |= limit;
-			wrmsr(MSR_MC_CTL2(bank), limit);
+			wrmsr(MSR_MC_CTL2(bank), ctl);
 		}
-		cc->last_intr = ticks;
+		cc->last_intr = time_uptime;
 		return;
 	}
 
@@ -583,7 +583,7 @@ cmci_update(enum scan_mode mode, int bank, int valid, struct mca_record *rec)
 	if ((ctl & MC_CTL2_THRESHOLD) != limit) {
 		ctl &= ~MC_CTL2_THRESHOLD;
 		ctl |= limit;
-		wrmsr(MSR_MC_CTL2(bank), limit);
+		wrmsr(MSR_MC_CTL2(bank), ctl);
 	}
 }
 #endif
@@ -765,7 +765,7 @@ mca_setup(uint64_t mcg_cap)
 	mtx_init(&mca_lock, "mca", NULL, MTX_SPIN);
 	STAILQ_INIT(&mca_records);
 	TASK_INIT(&mca_scan_task, 0, mca_scan_cpus, NULL);
-	callout_init(&mca_timer, CALLOUT_MPSAFE);
+	callout_init(&mca_timer, 1);
 	STAILQ_INIT(&mca_freelist);
 	TASK_INIT(&mca_refill_task, 0, mca_refill, NULL);
 	mca_fill_freelist();
@@ -852,7 +852,7 @@ cmci_resume(int i)
 		return;
 
 	cc = &cmc_state[PCPU_GET(cpuid)][i];
-	cc->last_intr = -ticks;
+	cc->last_intr = 0;
 	ctl = rdmsr(MSR_MC_CTL2(i));
 	ctl &= ~MC_CTL2_THRESHOLD;
 	ctl |= MC_CTL2_CMCI_EN | 1;

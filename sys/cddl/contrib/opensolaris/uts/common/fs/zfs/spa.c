@@ -168,15 +168,11 @@ id_t		zio_taskq_psrset_bind = PS_NONE;
 #endif
 #ifdef SYSDC
 boolean_t	zio_taskq_sysdc = B_TRUE;	/* use SDC scheduling class */
-#endif
 uint_t		zio_taskq_basedc = 80;		/* base duty cycle */
+#endif
 
 boolean_t	spa_create_process = B_TRUE;	/* no process ==> no sysdc */
 extern int	zfs_sync_pass_deferred_free;
-
-#ifndef illumos
-extern void spa_deadman(void *arg);
-#endif
 
 /*
  * This (illegal) pool name is used when temporarily importing a spa_t in order
@@ -6685,8 +6681,8 @@ spa_sync(spa_t *spa, uint64_t txg)
 	    spa->spa_sync_starttime + spa->spa_deadman_synctime));
 #else	/* !illumos */
 #ifdef _KERNEL
-	callout_reset(&spa->spa_deadman_cycid,
-	    hz * spa->spa_deadman_synctime / NANOSEC, spa_deadman, spa);
+	callout_schedule(&spa->spa_deadman_cycid,
+	    hz * spa->spa_deadman_synctime / NANOSEC);
 #endif
 #endif	/* illumos */
 
