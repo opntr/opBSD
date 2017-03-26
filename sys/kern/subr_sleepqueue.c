@@ -26,7 +26,7 @@
 
 /*
  * Implementation of sleep queues used to hold queue of threads blocked on
- * a wait channel.  Sleep queues different from turnstiles in that wait
+ * a wait channel.  Sleep queues are different from turnstiles in that wait
  * channels are not owned by anyone, so there is no priority propagation.
  * Sleep queues can also provide a timeout and can also be interrupted by
  * signals.  That said, there are several similarities between the turnstile
@@ -36,7 +36,7 @@
  * a linked list of queues.  An individual queue is located by using a hash
  * to pick a chain, locking the chain, and then walking the chain searching
  * for the queue.  This means that a wait channel object does not need to
- * embed it's queue head just as locks do not embed their turnstile queue
+ * embed its queue head just as locks do not embed their turnstile queue
  * head.  Threads also carry around a sleep queue that they lend to the
  * wait channel when blocking.  Just as in turnstiles, the queue includes
  * a free list of the sleep queues of other threads blocked on the same
@@ -96,7 +96,7 @@ __FBSDID("$FreeBSD$");
 #define	SC_LOOKUP(wc)	&sleepq_chains[SC_HASH(wc)]
 #define NR_SLEEPQS      2
 /*
- * There two different lists of sleep queues.  Both lists are connected
+ * There are two different lists of sleep queues.  Both lists are connected
  * via the sq_hash entries.  The first list is the sleep queue chain list
  * that a sleep queue is on when it is attached to a wait channel.  The
  * second list is the free list hung off of a sleep queue that is attached
@@ -185,7 +185,7 @@ init_sleepqueues(void)
 		    MTX_SPIN | MTX_RECURSE);
 #ifdef SLEEPQUEUE_PROFILING
 		snprintf(chain_name, sizeof(chain_name), "%d", i);
-		chain_oid = SYSCTL_ADD_NODE(NULL, 
+		chain_oid = SYSCTL_ADD_NODE(NULL,
 		    SYSCTL_STATIC_CHILDREN(_debug_sleepq_chains), OID_AUTO,
 		    chain_name, CTLFLAG_RD, NULL, "sleepq chain stats");
 		SYSCTL_ADD_UINT(NULL, SYSCTL_CHILDREN(chain_oid), OID_AUTO,
@@ -201,7 +201,7 @@ init_sleepqueues(void)
 #else
 	    NULL, NULL, sleepq_init, NULL, UMA_ALIGN_CACHE, 0);
 #endif
-	
+
 	thread0.td_sleepqueue = sleepq_alloc();
 }
 
@@ -411,6 +411,7 @@ sleepq_catch_signals(void *wchan, int pri)
 	struct sigacts *ps;
 	int sig, ret;
 
+	ret = 0;
 	td = curthread;
 	p = curproc;
 	sc = SC_LOOKUP(wchan);
@@ -424,44 +425,51 @@ sleepq_catch_signals(void *wchan, int pri)
 	}
 
 	/*
-	 * See if there are any pending signals for this thread.  If not
-	 * we can switch immediately.  Otherwise do the signal processing
-	 * directly.
+	 * See if there are any pending signals or suspension requests for this
+	 * thread.  If not, we can switch immediately.
 	 */
 	thread_lock(td);
-	if ((td->td_flags & (TDF_NEEDSIGCHK | TDF_NEEDSUSPCHK)) == 0) {
-		sleepq_switch(wchan, pri);
-		return (0);
+	if ((td->td_flags & (TDF_NEEDSIGCHK | TDF_NEEDSUSPCHK)) != 0) {
+		thread_unlock(td);
+		mtx_unlock_spin(&sc->sc_lock);
+		CTR3(KTR_PROC, "sleepq catching signals: thread %p (pid %ld, %s)",
+			(void *)td, (long)p->p_pid, td->td_name);
+		PROC_LOCK(p);
+		/*
+		 * Check for suspension first. Checking for signals and then
+		 * suspending could result in a missed signal, since a signal
+		 * can be delivered while this thread is suspended.
+		 */
+		if ((td->td_flags & TDF_NEEDSUSPCHK) != 0) {
+			ret = thread_suspend_check(1);
+			MPASS(ret == 0 || ret == EINTR || ret == ERESTART);
+			if (ret != 0) {
+				PROC_UNLOCK(p);
+				mtx_lock_spin(&sc->sc_lock);
+				thread_lock(td);
+				goto out;
+			}
+		}
+		if ((td->td_flags & TDF_NEEDSIGCHK) != 0) {
+			ps = p->p_sigacts;
+			mtx_lock(&ps->ps_mtx);
+			sig = cursig(td);
+			if (sig != 0)
+				ret = SIGISMEMBER(ps->ps_sigintr, sig) ?
+				    EINTR : ERESTART;
+			mtx_unlock(&ps->ps_mtx);
+		}
+		/*
+		 * Lock the per-process spinlock prior to dropping the PROC_LOCK
+		 * to avoid a signal delivery race.  PROC_LOCK, PROC_SLOCK, and
+		 * thread_lock() are currently held in tdsendsignal().
+		 */
+		PROC_SLOCK(p);
+		mtx_lock_spin(&sc->sc_lock);
+		PROC_UNLOCK(p);
+		thread_lock(td);
+		PROC_SUNLOCK(p);
 	}
-	thread_unlock(td);
-	mtx_unlock_spin(&sc->sc_lock);
-	CTR3(KTR_PROC, "sleepq catching signals: thread %p (pid %ld, %s)",
-		(void *)td, (long)p->p_pid, td->td_name);
-	PROC_LOCK(p);
-	ps = p->p_sigacts;
-	mtx_lock(&ps->ps_mtx);
-	sig = cursig(td);
-	if (sig == 0) {
-		mtx_unlock(&ps->ps_mtx);
-		ret = thread_suspend_check(1);
-		MPASS(ret == 0 || ret == EINTR || ret == ERESTART);
-	} else {
-		if (SIGISMEMBER(ps->ps_sigintr, sig))
-			ret = EINTR;
-		else
-			ret = ERESTART;
-		mtx_unlock(&ps->ps_mtx);
-	}
-	/*
-	 * Lock the per-process spinlock prior to dropping the PROC_LOCK
-	 * to avoid a signal delivery race.  PROC_LOCK, PROC_SLOCK, and
-	 * thread_lock() are currently held in tdsendsignal().
-	 */
-	PROC_SLOCK(p);
-	mtx_lock_spin(&sc->sc_lock);
-	PROC_UNLOCK(p);
-	thread_lock(td);
-	PROC_SUNLOCK(p);
 	if (ret == 0) {
 		sleepq_switch(wchan, pri);
 		return (0);
@@ -504,7 +512,7 @@ sleepq_switch(void *wchan, int pri)
 	mtx_assert(&sc->sc_lock, MA_OWNED);
 	THREAD_LOCK_ASSERT(td, MA_OWNED);
 
-	/* 
+	/*
 	 * If we have a sleep queue, then we've already been woken up, so
 	 * just return.
 	 */
@@ -531,7 +539,7 @@ sleepq_switch(void *wchan, int pri)
 #endif
 		}
 		mtx_unlock_spin(&sc->sc_lock);
-		return;		
+		return;
 	}
 #ifdef SLEEPQUEUE_PROFILING
 	if (prof_enabled)

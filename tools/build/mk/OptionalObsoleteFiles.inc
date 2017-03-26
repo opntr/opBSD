@@ -801,6 +801,7 @@ OLD_DIRS+=usr/tests/usr.bin/calendar
 
 .if ${MK_CCD} == no
 OLD_FILES+=etc/rc.d/ccd
+OLD_FILES+=rescue/ccdconfig
 OLD_FILES+=sbin/ccdconfig
 OLD_FILES+=usr/share/man/man4/ccd.4.gz
 OLD_FILES+=usr/share/man/man8/ccdconfig.8.gz
@@ -908,6 +909,7 @@ OLD_FILES+=etc/periodic/daily/800.scrub-zfs
 OLD_LIBS+=lib/libzfs.so.2
 OLD_LIBS+=lib/libzfs_core.so.2
 OLD_LIBS+=lib/libzpool.so.2
+OLD_FILES+=rescue/zdb
 OLD_FILES+=rescue/zfs
 OLD_FILES+=rescue/zpool
 OLD_FILES+=sbin/zfs
@@ -1032,10 +1034,6 @@ OLD_FILES+=usr/share/man/man1/opt.1.gz
 OLD_FILES+=usr/bin/cpp
 OLD_FILES+=usr/share/man/man1/cpp.1.gz
 .endif
-
-#.if ${MK_CRYPT} == no
-# to be filled in
-#.endif
 
 .if ${MK_CTM} == no
 OLD_FILES+=usr/sbin/ctm
@@ -2504,6 +2502,7 @@ OLD_FILES+=usr/share/man/man8/traceroute6.8.gz
 
 .if ${MK_INET6_SUPPORT} == no
 OLD_FILES+=rescue/ping6
+OLD_FILES+=rescue/rtsol
 .endif
 
 #.if ${MK_INFO} == no
@@ -2633,6 +2632,8 @@ OLD_FILES+=usr/share/man/man8/IPXrouted.8.gz
 .if ${MK_ISCSI} == no
 OLD_FILES+=etc/rc.d/iscsictl
 OLD_FILES+=etc/rc.d/iscsid
+OLD_FILES+=rescue/iscsictl
+OLD_FILES+=rescue/iscsid
 OLD_FILES+=sbin/iscontrol
 OLD_FILES+=usr/bin/iscsictl
 OLD_FILES+=usr/sbin/iscsid
@@ -3902,6 +3903,7 @@ OLD_FILES+=usr/share/misc/windrv_stub.c
 .endif
 
 .if ${MK_NETCAT} == no
+OLD_FILES+=rescue/nc
 OLD_FILES+=usr/bin/nc
 OLD_FILES+=usr/share/man/man1/nc.1.gz
 .endif
@@ -4451,11 +4453,18 @@ OLD_FILES+=usr/tests/usr.sbin/etcupdate/tzsetup_test
 OLD_DIRS+=usr/tests/usr.sbin/etcupdate
 .endif
 
-#.if ${MK_RESCUE} == no
-# to be filled in or replaced with a special target
-#.endif
+.if ${MK_RESCUE} == no
+. if exists(${DESTDIR}${TESTSBASE})
+RESCUE_DIRS!=find ${DESTDIR}/rescue -type d 2>/dev/null | sed -e 's,^${DESTDIR}/,,'; echo
+OLD_DIRS+=${RESCUE_DIRS}
+RESCUE_FILES!=find ${DESTDIR}/rescue \! -type d 2>/dev/null | sed -e 's,^${DESTDIR}/,,'; echo
+OLD_FILES+=${RESCUE_FILES}
+. endif
+.endif
 
 .if ${MK_ROUTED} == no
+OLD_FILES+=rescue/routed
+OLD_FILES+=rescue/rtquery
 OLD_FILES+=sbin/routed
 OLD_FILES+=sbin/rtquery
 OLD_FILES+=usr/share/man/man8/routed.8.gz
