@@ -5323,6 +5323,13 @@ OLD_FILES+=${TESTS_FILES}
 . endif
 .endif	# Test suite.
 
+.if ${MK_TFTP} == no
+OLD_FILES+=usr/bin/tftp
+OLD_FILES+=usr/libexec/tftpd
+OLD_FILES+=usr/share/man/man1/tftp.1.gz
+OLD_FILES+=usr/share/man/man8/tftpd.8.gz
+.endif
+
 #.if ${MK_TOOLCHAIN} == no
 # to be filled in
 #.endif
@@ -5604,8 +5611,6 @@ OLD_FILES+=usr/share/man/man4/ucom.4.gz
 OLD_FILES+=usr/share/man/man4/ucycom.4.gz
 OLD_FILES+=usr/share/man/man4/udav.4.gz
 OLD_FILES+=usr/share/man/man4/udbp.4.gz
-OLD_FILES+=usr/share/man/man4/udp.4.gz
-OLD_FILES+=usr/share/man/man4/udplite.4.gz
 OLD_FILES+=usr/share/man/man4/uep.4.gz
 OLD_FILES+=usr/share/man/man4/ufm.4.gz
 OLD_FILES+=usr/share/man/man4/ufoma.4.gz

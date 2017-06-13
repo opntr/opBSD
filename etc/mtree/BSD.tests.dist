@@ -310,6 +310,8 @@
         ..
         libcrypt
         ..
+        libkvm
+        ..
         libmp
         ..
         libnv
@@ -586,6 +588,8 @@
         ..
         file2c
         ..
+        getconf
+        ..
         grep
         ..
         gzip
@@ -603,6 +607,8 @@
         ncal
         ..
         opensm
+        ..
+        pr
         ..
         printf
         ..

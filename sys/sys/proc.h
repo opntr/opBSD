@@ -218,8 +218,8 @@ struct thread {
 	struct rl_q_entry *td_rlqe;	/* (k) Associated range lock entry. */
 	struct umtx_q   *td_umtxq;	/* (c?) Link for when we're blocked. */
 	lwpid_t		td_tid;		/* (b) Thread ID. */
-	sigqueue_t	td_sigqueue;	/* (c) Sigs arrived, not delivered. */
-#define	td_siglist	td_sigqueue.sq_signals
+	uint64_t	padding1[4];
+	void		*padding2[4];
 	u_char		td_lend_user_pri; /* (t) Lend user pri. */
 
 /* Cleared during fork1() */
@@ -327,6 +327,8 @@ struct thread {
 	u_int		td_dbg_sc_narg;	/* (c) Syscall arg count to debugger.*/
 	void		*td_emuldata;	/* Emulator state data */
 	sbintime_t	td_sleeptimo;	/* (t) Sleep timeout. */
+	sigqueue_t	td_sigqueue;	/* (c) Sigs arrived, not delivered. */
+#define	td_siglist	td_sigqueue.sq_signals
 };
 
 struct mtx *thread_lock_block(struct thread *);
@@ -462,6 +464,12 @@ do {									\
 #define	TD_ON_UPILOCK(td)	((td)->td_flags & TDF_UPIBLOCKED)
 #define TD_IS_IDLETHREAD(td)	((td)->td_flags & TDF_IDLETD)
 
+#define	KTDSTATE(td)							\
+	(((td)->td_inhibitors & TDI_SLEEPING) != 0 ? "sleep"  :		\
+	((td)->td_inhibitors & TDI_SUSPENDED) != 0 ? "suspended" :	\
+	((td)->td_inhibitors & TDI_SWAPPED) != 0 ? "swapped" :		\
+	((td)->td_inhibitors & TDI_LOCK) != 0 ? "blocked" :		\
+	((td)->td_inhibitors & TDI_IWAIT) != 0 ? "iwait" : "yielding")
 
 #define	TD_SET_INHIB(td, inhib) do {			\
 	(td)->td_state = TDS_INHIBITED;			\
@@ -521,8 +529,8 @@ struct proc {
 	LIST_HEAD(, proc) p_children;	/* (e) Pointer to list of children. */
 	struct mtx	p_mtx;		/* (n) Lock for this struct. */
 	struct ksiginfo *p_ksi;	/* Locked by parent proc lock */
-	sigqueue_t	p_sigqueue;	/* (c) Sigs not delivered to a td. */
-#define p_siglist	p_sigqueue.sq_signals
+	uint64_t	padding1[4];
+	void		*padding2[4];
 
 /* The following fields are all zeroed upon creation in fork. */
 #define	p_startzero	p_oppid
@@ -578,6 +586,7 @@ struct proc {
 	vm_offset_t	p_psstrings;	/* (b) Process psstrings address. */
 	vm_offset_t	p_shared_page_base;	/* (c) Address of shared page. */
 	vm_offset_t	p_sigcode_base;	/* (c) Address of sigcode. */
+
 /* End area that is copied on creation. */
 #define	p_endcopy	p_xstat
 
@@ -621,6 +630,10 @@ struct proc {
 	struct pgrp	*p_pgrp;	/* (c + e) Pointer to process group. */
 	struct filemon	*p_filemon;	/* (c) filemon-specific data. */
 	u_int		p_ptevents;	/* (c) ptrace() event mask. */
+	uint16_t	p_elf_machine;	/* (x) ELF machine type */
+	uint64_t	p_elf_flags;	/* (x) ELF flags */
+	sigqueue_t	p_sigqueue;	/* (c) Sigs not delivered to a td. */
+#define p_siglist	p_sigqueue.sq_signals
 };
 
 #define	p_session	p_pgrp->pg_session

@@ -259,7 +259,8 @@ struct ifnet {
 	 */
 	u_int	if_hw_tsomaxsegcount;	/* TSO maximum segment count */
 	u_int	if_hw_tsomaxsegsize;	/* TSO maximum segment size in bytes */
-	void	*if_pspare[8];		/* 1 netmap, 7 TDB */
+	void	*if_pspare[7];		/* 1 netmap, 6 TDB */
+	void	*if_hw_addr;		/* hardware link-level address */
 };
 
 typedef void if_init_f_t(void *);
@@ -973,6 +974,7 @@ void	if_qflush(struct ifnet *);
 void	if_ref(struct ifnet *);
 void	if_rele(struct ifnet *);
 int	if_setlladdr(struct ifnet *, const u_char *, int);
+int	if_gethwaddr(struct ifnet *, struct ifreq *);
 void	if_up(struct ifnet *);
 int	ifioctl(struct socket *, u_long, caddr_t, struct thread *);
 int	ifpromisc(struct ifnet *, int);
