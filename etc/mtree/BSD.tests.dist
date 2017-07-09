@@ -14,6 +14,8 @@
         ..
         dd
         ..
+        echo
+        ..
         expr
         ..
         ls
@@ -575,6 +577,8 @@
         calendar
         ..
         cmp
+        ..
+        compress
         ..
         cpio
         ..

@@ -1156,6 +1156,8 @@ vm_map_insert(vm_map_t map, vm_object_t object, vm_ooffset_t offset,
 	    ("vm_map_insert: kmem or kernel object and COW"));
 	KASSERT(object == NULL || (cow & MAP_NOFAULT) == 0,
 	    ("vm_map_insert: paradoxical MAP_NOFAULT request"));
+	KASSERT((prot & ~max) == 0,
+	    ("prot %#x is not subset of max_prot %#x", prot, max));
 
 	/*
 	 * Check that the start and end points are not bogus.
@@ -2656,9 +2658,9 @@ vm_map_wire(vm_map_t map, vm_offset_t start, vm_offset_t end,
 		 * If VM_MAP_WIRE_HOLESOK was specified, skip this check.
 		 */
 	next_entry:
-		if (((flags & VM_MAP_WIRE_HOLESOK) == 0) &&
-		    (entry->end < end && (entry->next == &map->header ||
-		    entry->next->start > entry->end))) {
+		if ((flags & VM_MAP_WIRE_HOLESOK) == 0 &&
+		    entry->end < end && (entry->next == &map->header ||
+		    entry->next->start > entry->end)) {
 			end = entry->end;
 			rv = KERN_INVALID_ADDRESS;
 			goto done;
@@ -2677,9 +2679,6 @@ done:
 	}
 	for (entry = first_entry; entry != &map->header && entry->start < end;
 	    entry = entry->next) {
-		if ((entry->eflags & MAP_ENTRY_WIRE_SKIPPED) != 0)
-			goto next_entry_done;
-
 		/*
 		 * If VM_MAP_WIRE_HOLESOK was specified, an empty
 		 * space in the unwired region could have been mapped
@@ -2687,7 +2686,7 @@ done:
 		 * pages or draining MAP_ENTRY_IN_TRANSITION.
 		 * Moreover, another thread could be simultaneously
 		 * wiring this new mapping entry.  Detect these cases
-		 * and skip any entries marked as in transition by us.
+		 * and skip any entries marked as in transition not by us.
 		 */
 		if ((entry->eflags & MAP_ENTRY_IN_TRANSITION) == 0 ||
 		    entry->wiring_thread != curthread) {
@@ -2695,6 +2694,9 @@ done:
 			    ("vm_map_wire: !HOLESOK and new/changed entry"));
 			continue;
 		}
+
+		if ((entry->eflags & MAP_ENTRY_WIRE_SKIPPED) != 0)
+			goto next_entry_done;
 
 		if (rv == KERN_SUCCESS) {
 			if (user_wire)
@@ -3204,6 +3206,10 @@ vm_map_copy_entry(
 				fake_entry->next = curthread->td_map_def_user;
 				curthread->td_map_def_user = fake_entry;
 			}
+
+			pmap_copy(dst_map->pmap, src_map->pmap,
+			    dst_entry->start, dst_entry->end - dst_entry->start,
+			    src_entry->start);
 		} else {
 			dst_entry->object.vm_object = NULL;
 			dst_entry->offset = 0;
@@ -3213,9 +3219,6 @@ vm_map_copy_entry(
 				*fork_charge += size;
 			}
 		}
-
-		pmap_copy(dst_map->pmap, src_map->pmap, dst_entry->start,
-		    dst_entry->end - dst_entry->start, src_entry->start);
 	} else {
 		/*
 		 * We don't want to make writeable wired pages copy-on-write.

@@ -54,7 +54,7 @@
  *
  * scheme is:  <major><two digit minor>Rxx
  *		'R' is in the range 0 to 4 if this is a release branch or
- *		x.0-CURRENT before RELENG_*_0 is created, otherwise 'R' is
+ *		X.0-CURRENT before releng/X.0 is created, otherwise 'R' is
  *		in the range 5 to 9.
  */
 #undef __FreeBSD_version
@@ -242,9 +242,7 @@
  *		Filesystems can of course request smaller chunks.  Actual
  *		backing memory uses a chunk size of a page (PAGE_SIZE).
  *		The default value here can be overridden on a per-architecture
- *		basis by defining it in <machine/param.h>.  This should
- *		probably be done to increase its value, when MAXBCACHEBUF is
- *		defined as a larger value in <machine/param.h>.
+ *		basis by defining it in <machine/param.h>.
  *
  *		If you make BKVASIZE too small you risk seriously fragmenting
  *		the buffer KVM map which may slow things down a bit.  If you
